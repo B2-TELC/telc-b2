@@ -882,46 +882,9 @@
 <div id="page-lv-teil2" class="page">
   <div class="cat-header">
     <div class="cat-header-inner">
-      <button class="back-btn" onclick="showPage('leseverstehen')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Leseverstehen
-      </button>
-      <div class="cat-num">02</div>
-      <div class="cat-kicker">TEIL 2</div>
-      <h1 class="cat-title">Teil 2 — Leseverstehen</h1>
-      <p class="cat-lead">30 Prüfungen · Lesen Sie den Text und beantworten Sie die Fragen.</p>
-    </div>
-  </div>
-  <div class="content-area">
-    <div id="teil2-list" class="exam-list"></div>
-  </div>
-</div>
-
-<!-- ==================== LV TEIL 2 — EXAM ==================== -->
-<div id="page-lv2-exam" class="page">
-  <div class="cat-header">
-    <div class="cat-header-inner">
-      <button class="back-btn" onclick="showPage('lv-teil2')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Teil 2
-      </button>
-      <div class="cat-num" id="lv2-exam-num">01</div>
-      <div class="cat-kicker">LESEVERSTEHEN — TEIL 2</div>
-      <h1 class="cat-title" id="lv2-exam-title">Prüfung 1</h1>
-      <p class="cat-lead">Lesen Sie den Text. Welche Antwort (a, b oder c) ist richtig?</p>
-    </div>
-  </div>
-  <div class="content-area" id="lv2-exam-content" style="max-width:1000px;">
-  </div>
-</div>
-
-<!-- ==================== LV TEIL 3 placeholder ==================== -->
-<div id="page-lv-teil3" class="page">
-  <div class="cat-header">
-    <div class="cat-header-inner">
       <button class="back-btn" onclick="showPage('leseverstehen')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>Leseverstehen</button>
-      <div class="cat-num">03</div><div class="cat-kicker">TEIL 3</div>
-      <h1 class="cat-title">Teil 3</h1><p class="cat-lead">Noch in Vorbereitung.</p>
+      <div class="cat-num">02</div><div class="cat-kicker">TEIL 2</div>
+      <h1 class="cat-title">Teil 2</h1><p class="cat-lead">Noch in Vorbereitung.</p>
     </div>
   </div>
   <div class="content-area" style="text-align:center;padding-top:3rem;"><button class="btn-soon">Bald verfügbar</button></div>
@@ -1342,27 +1305,44 @@ const CORS_PROXIES     = [
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
 ];
 
-// محاولة الاتصال المباشر أولاً ثم CORS proxies
+// محاولة الاتصال المباشر مع API Key
 async function fetchWithFallback(url, options) {
   // محاولة مباشرة أولاً
   try {
     const res = await fetch(url, { ...options, mode: 'cors' });
     if (res.ok) return res;
+    throw new Error('HTTP ' + res.status);
+  } catch(e1) {}
+  // جرّب corsproxy.io مع headers كاملة
+  try {
+    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxyUrl, {
+      method: options.method || 'GET',
+      headers: options.headers,
+      body: options.body,
+    });
+    if (res.ok) return res;
   } catch(_) {}
-  // جرّب CORS proxies بالترتيب
-  for (const proxy of CORS_PROXIES) {
-    try {
-      const proxyUrl = proxy(url);
-      // عند استخدام proxy لا نرسل headers مخصصة (تسبب preflight)
-      // نضيف الـ headers في URL params بدلاً عبر corsproxy.io الذي يدعمها
-      const res = await fetch(proxyUrl, {
-        method: options.method || 'GET',
-        headers: options.headers,
-        body: options.body,
-      });
-      if (res.ok) return res;
-    } catch(_) {}
-  }
+  // جرّب thingproxy
+  try {
+    const proxyUrl = 'https://thingproxy.freeboard.io/fetch/' + url;
+    const res = await fetch(proxyUrl, {
+      method: options.method || 'GET',
+      headers: options.headers,
+      body: options.body,
+    });
+    if (res.ok) return res;
+  } catch(_) {}
+  // جرّب cors-anywhere
+  try {
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/' + url;
+    const res = await fetch(proxyUrl, {
+      method: options.method || 'GET',
+      headers: { ...options.headers, 'X-Requested-With': 'XMLHttpRequest' },
+      body: options.body,
+    });
+    if (res.ok) return res;
+  } catch(_) {}
   throw new Error('Failed to fetch via direct and all proxies');
 }
 
