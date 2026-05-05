@@ -2370,7 +2370,12 @@ async function fetchOneSection(section, timeoutMs) {
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(FIREBASE_URL + '/data/' + section + '.json?t=' + Date.now(), { signal: ctrl.signal });
+    let url = FIREBASE_URL + '/data/' + section + '.json?t=' + Date.now();
+    try {
+      const user = auth.currentUser;
+      if (user) { const tok = await user.getIdToken(); url += '&auth=' + tok; }
+    } catch(e) {}
+    const res = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     if (!res.ok) return null;
     return await res.json();
