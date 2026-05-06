@@ -2397,14 +2397,13 @@ async function fetchOneSection(section, timeoutMs) {
   const tid = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     let url = FIREBASE_URL + '/data/' + section + '.json?t=' + Date.now();
-    // انتظر حتى يكون auth جاهزاً (حد أقصى 5 ثواني)
     let user = auth.currentUser;
     if (!user) {
-      await new Promise(resolve => {
+      // انتظر حتى يكون auth جاهزاً
+      user = await new Promise(resolve => {
         const unsub = auth.onAuthStateChanged(u => { unsub(); resolve(u); });
-        setTimeout(resolve, 5000);
+        setTimeout(() => resolve(null), 4000);
       });
-      user = auth.currentUser;
     }
     if (user) {
       try { const token = await user.getIdToken(); url += '&auth=' + token; } catch(e) {}
@@ -2880,6 +2879,7 @@ function showKickOverlay() {
   document.body.appendChild(overlay);
 }
 function openAdminGate() {
+  window.__gateUnlocked = true; // منع المراقب من إعادة gate-overlay
   document.getElementById('gate-overlay').style.display = 'none';
   document.getElementById('admin-gate-overlay').style.display = 'flex';
 }
