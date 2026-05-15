@@ -4044,6 +4044,7 @@ function switchTab(tab) {
     fetchOneSection('swdata').then(function(data) {
       if (data && Object.keys(data).length > 0) {
         remoteData.swdata = data;
+        try { localStorage.setItem('telc_sw_data', JSON.stringify(data)); } catch(e) {}
       } else {
         // ✅ fallback من localStorage إذا لم يُرجع Firebase بيانات
         try {
