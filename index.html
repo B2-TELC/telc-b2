@@ -602,7 +602,7 @@ function renderHv1AdminList() {
   var html = '<div class="exam-list">';
   hv1Data.forEach(function(exam, idx) {
     html += '<div class="exam-list-item" style="cursor:default;">';
-
+    html += _reorderMakeButtons('hv1', idx, hv1Data.length);
     html += '<div class="exam-list-left" style="flex:1;cursor:pointer;margin-left:.5rem;" onclick="openHv1Editor(' + exam.id + ')">';
     html += '<span class="exam-list-num">' + String(idx+1).padStart(2,'0') + '</span>';
     html += '<div><div class="exam-list-name">' + escHtml(exam.title) + '</div>';
@@ -5489,7 +5489,7 @@ function renderT2List() {
       : '<span style="font-size:.68rem;background:var(--cream);color:var(--muted);border:1px solid var(--border);border-radius:100px;padding:.1rem .5rem;">Platzhalter</span>';
     var t2idx = teil2Exams.indexOf(ex);
     return '<div class="exam-card-admin" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">' +
-
+      _reorderMakeButtons('t2', t2idx, teil2Exams.length) +
       '<div style="flex:1;cursor:pointer;min-width:0;margin-left:.5rem;" onclick="openT2Editor(' + ex.id + ')">' +
         '<h4 class="u-flex-center-gap6">' + escHtml(name) + ' ' + badge + '</h4>' +
         '<p>1 Text \u00b7 5 Fragen \u00b7 3 Optionen · <span style="font-family:monospace;color:var(--accent);font-weight:700;">' + String(t2idx+1).padStart(2,'0') + '</span></p>' +
@@ -5653,7 +5653,7 @@ function renderT3List() {
     const t3idx = teil3Exams.indexOf(ex);
     return `
     <div class="exam-card-admin" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
-
+      ${_reorderMakeButtons('t3', t3idx, teil3Exams.length)}
       <div style="flex:1;cursor:pointer;min-width:0;margin-left:.5rem;" onclick="openT3EditorLV(${ex.id})">
         <h4 class="u-flex-center-gap6">${escHtml(name)} ${badge}</h4>
         <p>10 Titel · 12 Texte · <span style="font-family:monospace;color:var(--accent);font-weight:700;">${String(t3idx+1).padStart(2,'0')}</span></p>
@@ -7172,7 +7172,7 @@ function renderHv2AdminList() {
   var html = '<div class="exam-list">';
   hv2Data.forEach(function(exam, idx) {
     html += '<div class="exam-list-item" style="cursor:default;">';
-
+    html += _reorderMakeButtons('hv2', idx, hv2Data.length);
     html += '<div class="exam-list-left" style="flex:1;cursor:pointer;margin-left:.5rem;" onclick="openHv2Editor(' + exam.id + ')">';
     html += '<span class="exam-list-num">' + String(idx+1).padStart(2,'0') + '</span>';
     html += '<div><div class="exam-list-name">' + escHtml(exam.title) + '</div>';
@@ -7411,7 +7411,7 @@ function renderHv3AdminList() {
   var html = '';
   hv3Data.forEach(function(exam, idx) {
     html += '<div class="exam-list-item" style="cursor:default;">';
-
+    html += _reorderMakeButtons('hv3', idx, hv3Data.length);
     html += '<div class="exam-list-left" style="flex:1;cursor:pointer;margin-left:.5rem;" onclick="openHv3Editor(' + exam.id + ')">';
     html += '<span class="exam-list-num">' + String(idx+1).padStart(2,'0') + '</span>';
     html += '<div><div class="exam-list-name">' + escHtml(exam.title) + '</div>';
@@ -7696,7 +7696,7 @@ function renderSb1AdminList() {
       : '<span style="font-size:.68rem;background:var(--cream);color:var(--muted);border:1px solid var(--border);border-radius:100px;padding:.1rem .5rem;">Leer</span>';
     var safeId = (!isNaN(ex.id) && ex.id > 0) ? ex.id : 0;
     html += '<div class="exam-card-admin" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">';
-
+    html += _reorderMakeButtons('sb1', idx, sb1Exams.length);
     html += '<div style="flex:1;cursor:pointer;min-width:0;margin-left:.5rem;" onclick="openSb1Editor(' + safeId + ')">';
     html += '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;"><h4 style="margin:0;">' + escHtml(ex.name) + '</h4>' + badge + '</div>';
     html += '<p style="margin:.2rem 0 0;font-size:.75rem;color:var(--muted);">10 Lücken · SB Teil 1 · <span style="font-family:monospace;color:var(--accent);font-weight:700;">' + String(idx+1).padStart(2,'0') + '</span></p>';
@@ -7726,7 +7726,7 @@ function renderSb2AdminList() {
       ? '<span style="font-size:.68rem;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:100px;padding:.1rem .5rem;">✓ Inhalt</span>'
       : '<span style="font-size:.68rem;background:var(--cream);color:var(--muted);border:1px solid var(--border);border-radius:100px;padding:.1rem .5rem;">Leer</span>';
     html += '<div class="exam-card-admin" style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">';
-
+    html += _reorderMakeButtons('sb2', idx, sb2Exams.length);
     html += '<div style="flex:1;cursor:pointer;min-width:0;margin-left:.5rem;" onclick="openSb2Editor(' + ex.id + ')">';
     html += '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;"><h4 style="margin:0;">' + escHtml(ex.name) + '</h4>' + badge + '</div>';
     html += '<p style="margin:.2rem 0 0;font-size:.75rem;color:var(--muted);">10 Lücken · SB Teil 2 · <span style="font-family:monospace;color:var(--accent);font-weight:700;">' + String(idx+1).padStart(2,'0') + '</span></p>';
@@ -8774,7 +8774,7 @@ function mdt2AdminRenderList(exams) {
     return '<div style="border:1px solid var(--border);border-radius:10px;background:var(--paper);overflow:hidden;">' +
       '<div style="background:var(--cream);padding:.6rem .9rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">' +
         '<div style="display:flex;align-items:center;gap:.5rem;">' +
-
+          _reorderMakeButtons('mdt2', idx, exams.length) +
           '<span style="font-size:.75rem;font-weight:700;color:var(--accent);font-family:\'DM Mono\',monospace;margin-left:.35rem;">' + String(idx+1).padStart(2,'0') + '</span>' +
         '</div>' +
         '<div style="display:flex;gap:.4rem;">' +
@@ -9115,7 +9115,7 @@ function mdt3AdminRenderList(exams) {
     return '<div style="border:1px solid var(--border);border-radius:8px;padding:.85rem;background:var(--paper);">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">' +
         '<div style="display:flex;align-items:center;gap:.5rem;">' +
-
+          _reorderMakeButtons('mdt3', idx, exams.length) +
           '<span style="font-size:.72rem;font-weight:700;color:var(--accent);font-family:\'DM Mono\',monospace;margin-left:.35rem;">اختبار ' + (idx + 1) + '</span>' +
         '</div>' +
         '<div style="display:flex;gap:.4rem;">' +
