@@ -11,7 +11,7 @@
 <!-- ✅ [5] CSP: تمنع تنفيذ سكريبتات خارجية غير موثوقة -->
 <!-- ⚠️ unsafe-inline مطلوب بسبب الـ inline scripts والـ onclick attrs — لا يمكن إزالته بدون إعادة هيكلة كاملة -->
 <!-- ✅ تم تقوية الـ CSP بإضافة: object-src, frame-ancestors, base-uri, upgrade-insecure-requests -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-api.csgodangerzone44.workers.dev https://api.mymemory.translated.net https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com; img-src 'self' data: https:; media-src 'self' https:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-api.csgodangerzone44.workers.dev https://api.mymemory.translated.net https://translate.googleapis.com https://libretranslate.com https://translate.fedilab.app https://lt.vern.cc https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com; img-src 'self' data: https:; media-src 'self' https:; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -3345,7 +3345,7 @@ function startSessionPolling(code) {
     } catch(e) {
       console.warn('Session poll error:', e.message);
     }
-  }, 10000);
+  }, 5000);
 }
 function showKickOverlay() {
   const old = document.getElementById('kick-overlay');
@@ -6779,10 +6779,10 @@ async function lvTranslateTitle(letter, btn) {
   btn.disabled = true;
   try {
     const result = await autoTranslate(sourceText);
-    box.textContent = result || sourceText;
-    box.dataset.translated = '1';
+    if (result) { box.textContent = result; box.dataset.translated = '1'; }
+    else { box.textContent = '⚠️ تعذّرت الترجمة، حاول لاحقاً'; box.style.color = '#c62828'; }
   } catch(e) {
-    try { box.textContent = await autoTranslate(sourceText) || sourceText; box.dataset.translated = '1'; } catch(e2) { box.textContent = sourceText; box.dataset.translated = '1'; }
+    box.textContent = '⚠️ تعذّرت الترجمة، حاول لاحقاً'; box.style.color = '#c62828';
   }
   btn.disabled = false;
   btn.innerHTML = globeSvg() + ' إخفاء';
@@ -6850,15 +6850,74 @@ function spinnerSvg() {
     document.head.appendChild(s);
   }
 })();
+function _fetchWithTimeout(url, options, ms) {
+  var controller = new AbortController();
+  var timer = setTimeout(function(){ controller.abort(); }, ms);
+  return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+    .finally(function(){ clearTimeout(timer); });
+}
 async function _translateChunk(text) {
-  const res = await fetch('https://2-telc-api.csgodangerzone44.workers.dev/api/translate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text, target: 'ar', source: 'de' })
-  });
-  const data = await res.json();
-  if (data && data.translated && data.translated.trim() && data.translated.indexOf('MYMEMORY WARNING') === -1) {
-    return data.translated.trim();
+  // 1) Google Translate غير رسمي (الأسرع والأفضل جودة)
+  try {
+    const gUrl = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=ar&dt=t&q=' + encodeURIComponent(text);
+    const gRes = await _fetchWithTimeout(gUrl, {}, 5000);
+    if (gRes.ok) {
+      const gData = await gRes.json();
+      if (gData && gData[0]) {
+        const gText = gData[0].filter(Boolean).map(function(s){ return s[0] || ''; }).join('').trim();
+        if (gText) return gText;
+      }
+    }
+  } catch(e) {}
+  // 2) Worker الأساسي
+  try {
+    const res = await _fetchWithTimeout('https://2-telc-api.csgodangerzone44.workers.dev/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, target: 'ar', source: 'de' })
+    }, 5000);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.translated && data.translated.trim() && data.translated.indexOf('MYMEMORY WARNING') === -1) {
+        return data.translated.trim();
+      }
+    }
+  } catch(e) {}
+  // 3) fallback: MyMemory + email
+  try {
+    const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=de|ar&de=csgodangerzone44@gmail.com';
+    const res2 = await _fetchWithTimeout(url, {}, 5000);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2 && data2.responseData && data2.responseData.translatedText &&
+          data2.responseData.translatedText.trim() &&
+          data2.responseData.translatedText.indexOf('MYMEMORY WARNING') === -1 &&
+          data2.responseStatus !== 429 &&
+          !(data2.responseDetails && data2.responseDetails.toLowerCase().indexOf('quota') !== -1)) {
+        return data2.responseData.translatedText.trim();
+      }
+    }
+  } catch(e) {}
+  // 4) fallback: LibreTranslate
+  var _libreHosts = [
+    'https://translate.fedilab.app',
+    'https://lt.vern.cc',
+    'https://libretranslate.com'
+  ];
+  for (var _li = 0; _li < _libreHosts.length; _li++) {
+    try {
+      var lRes = await _fetchWithTimeout(_libreHosts[_li] + '/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, source: 'de', target: 'ar', format: 'text' })
+      }, 5000);
+      if (lRes.ok) {
+        var lData = await lRes.json();
+        if (lData && lData.translatedText && lData.translatedText.trim()) {
+          return lData.translatedText.trim();
+        }
+      }
+    } catch(e) {}
   }
   return null;
 }
@@ -7291,10 +7350,10 @@ async function toggleT2OptTrans(qi, oi) {
   box.style.display = 'block';
   try {
     const result = await autoTranslate(sourceText);
-    box.textContent = result || sourceText;
-    box.dataset.translated = '1';
+    if (result) { box.textContent = result; box.dataset.translated = '1'; }
+    else { box.textContent = '⚠️ تعذّرت الترجمة، حاول لاحقاً'; box.style.color = '#c62828'; }
   } catch(e) {
-    try { box.textContent = await autoTranslate(sourceText) || sourceText; box.dataset.translated = '1'; } catch(e2) { box.textContent = sourceText; box.dataset.translated = '1'; }
+    box.textContent = '⚠️ تعذّرت الترجمة، حاول لاحقاً'; box.style.color = '#c62828';
   }
 }
 async function toggleT2QTrans(qi) {
