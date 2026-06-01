@@ -1465,7 +1465,6 @@ applyHv3AdminData();</script>
       <button class="admin-tab" id="tab-md" onclick="switchTab('md')"><span class="tab-icon">🎤</span>Mündlich</button>
       <button class="admin-tab" id="tab-notif" onclick="switchTab('notif')"><span class="tab-icon">📢</span>إشعارات</button>
       <button class="admin-tab" id="tab-struktur" onclick="switchTab('struktur')"><span class="tab-icon">📄</span>Struktur</button>
-      <button class="admin-tab" id="tab-afkar" onclick="switchTab('afkar')"><span class="tab-icon">💡</span>أفكار T3</button>
     </div>
     <div id="tab-panel-codes">
       <div class="admin-form-card">
@@ -2270,33 +2269,6 @@ applyHv3AdminData();</script>
       </div>
     </div>
     <!-- ===== END STRUKTUR SCHREIBEN ADMIN PANEL ===== -->
-
-    <!-- ===== AFKAR MDT3 ADMIN PANEL ===== -->
-    <div id="tab-panel-afkar" style="display:none;">
-      <div class="admin-form-card">
-        <h3 style="margin-bottom:.5rem;">💡 إدارة — اختبارات لها نفس الأفكار (Teil 3)</h3>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.5;">أضف مجموعات. كل مجموعة لها اسم وقائمة أسماء الاختبارات ثم الأفكار المشتركة (مطات -).</p>
-        <div id="afkar-admin-list" style="display:flex;flex-direction:column;gap:.75rem;margin-bottom:1.25rem;"></div>
-        <div style="border:1.5px dashed var(--border);border-radius:10px;padding:1.25rem;background:var(--paper);">
-          <div style="font-size:.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.85rem;">➕ مجموعة جديدة</div>
-          <div class="q-field" style="margin-bottom:.75rem;">
-            <label>📌 اسم المجموعة</label>
-            <input type="text" id="afkar-group-title-input" class="admin-input" style="width:100%;" placeholder="مثال: Umwelt und Klimawandel">
-          </div>
-          <div class="q-field" style="margin-bottom:.75rem;">
-            <label>📝 أسماء الاختبارات (كل اسم في سطر)</label>
-            <textarea id="afkar-group-exams-input" class="admin-input" style="width:100%;min-height:80px;resize:vertical;font-size:.88rem;line-height:1.8;" placeholder="مثال:&#10;Prüfung März 2024&#10;Prüfung Juni 2024"></textarea>
-          </div>
-          <div class="q-field" style="margin-bottom:.85rem;">
-            <label>💡 الأفكار المشتركة (كل فكرة في سطر — تبدأ تلقائياً بـ -)</label>
-            <textarea id="afkar-group-ideas-input" class="admin-input" style="width:100%;min-height:130px;resize:vertical;font-size:.88rem;line-height:1.8;" placeholder="مثال:&#10;يجب على الجميع المساهمة في حماية البيئة&#10;التغير المناخي يؤثر على الزراعة والمياه&#10;الطاقة المتجددة هي الحل الأمثل"></textarea>
-          </div>
-          <button class="btn-primary" style="font-size:.84rem;" onclick="afkarSaveGroup()">💾 إضافة المجموعة</button>
-          <div id="afkar-admin-feedback" style="font-size:.8rem;margin-top:.75rem;min-height:1.2em;"></div>
-        </div>
-      </div>
-    </div>
-    <!-- ===== END AFKAR MDT3 ADMIN PANEL ===== -->
 </div>
 <div id="page-mundlich" class="page">
   <div class="cat-header">
@@ -2662,12 +2634,6 @@ applyHv3AdminData();</script>
       <div class="cat-kicker">MÜNDLICH — TEIL 3</div>
       <h1 class="cat-title">Gespräch über ein Thema</h1>
       <p class="cat-lead">Diskutieren Sie ein strittiges Thema und vertreten Sie Ihren Standpunkt.</p>
-      <div style="margin-top:1.25rem;">
-        <button onclick="showPage('mdt3-afkar')" style="display:inline-flex;align-items:center;gap:.55rem;background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:.75rem 1.4rem;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s,transform .15s;letter-spacing:.02em;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="2"/><path d="M2 4h2l2.5 10h11L20 8H6"/><path d="M9 13h6"/></svg>
-          اختبارات لها نفس الأفكار
-        </button>
-      </div>
     </div>
   </div>
   <div class="content-area">
@@ -2709,34 +2675,6 @@ applyHv3AdminData();</script>
     </div>
   </div>
 </div>
-
-<!-- ===== صفحة اختبارات لها نفس الأفكار — Teil 3 ===== -->
-<div id="page-mdt3-afkar" class="page">
-  <div class="cat-header">
-    <div class="cat-header-inner">
-      <button class="back-btn" onclick="showPage('mundlich-teil3')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        Teil 3
-      </button>
-      <div class="cat-kicker">MÜNDLICH — TEIL 3</div>
-      <h1 class="cat-title">اختبارات لها نفس الأفكار</h1>
-      <p class="cat-lead">مجموعات من الاختبارات التي تشترك في نفس الأفكار والمواضيع.</p>
-    </div>
-  </div>
-  <div class="content-area" style="max-width:720px;">
-    <div id="afkar-loading" style="text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.9rem;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="animation:spin 1s linear infinite;display:block;margin:0 auto .75rem;opacity:.4;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-      جاري التحميل...
-    </div>
-    <div id="afkar-empty" style="display:none;text-align:center;padding:4rem 1rem;color:var(--muted);">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:1rem;opacity:.3;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-      <p style="font-size:.95rem;font-weight:500;">لا توجد مجموعات بعد.</p>
-      <p style="font-size:.82rem;margin-top:.4rem;opacity:.7;">سيتم إضافة المجموعات قريباً.</p>
-    </div>
-    <div id="afkar-groups" style="display:flex;flex-direction:column;gap:1.25rem;"></div>
-  </div>
-</div>
-<!-- ===== END صفحة اختبارات لها نفس الأفكار ===== -->
 
 <!-- ===== صفحة اختبار Teil 3 ===== -->
 <div id="page-mdt3-exam" class="page">
@@ -2834,8 +2772,7 @@ const firebaseConfig = {
   projectId: "b2-telc",
   storageBucket: "b2-telc.firebasestorage.app",
   messagingSenderId: "360141343183",
-  appId: "1:360141343183:web:e1fae59d4325ef984aaaba",
-  measurementId: "G-S3F2GPWHHS"
+  appId: "1:360141343183:web:e1fae59d4325ef984aaaba"
 };
 firebase.initializeApp(firebaseConfig);
 // App Check disabled
@@ -4180,7 +4117,6 @@ const _pageParent = {
   'mundlich-teil1': 'mundlich',
   'mundlich-teil2': 'mundlich',
   'mundlich-teil3': 'mundlich',
-  'mdt3-afkar': 'mundlich-teil3',
   'aussprache': 'mundlich',
   'mdt2-exam': 'mundlich-teil2',
   'mdt3-exam': 'mundlich-teil3',
@@ -4189,19 +4125,8 @@ const _pageParent = {
 let _suppressPush = false;
 function showPage(id) {
   if (!id || !document.getElementById('page-' + id)) { id = 'home'; }
-  // ✅ أغلق أي dropdown مفتوح بشكل صحيح قبل تغيير الصفحة
-  if (typeof _openDropdown !== 'undefined' && _openDropdown) {
-    lvCloseDropdown(_openDropdown);
-    _openDropdown = null;
-  }
-  if (typeof _lv3OpenDropdown !== 'undefined' && _lv3OpenDropdown) {
-    lv3CloseDropdown(_lv3OpenDropdown);
-    _lv3OpenDropdown = null;
-  }
-  // تنظيف أي panels معلقة في body
   document.querySelectorAll('.lv-dropdown-panel').forEach(function(panel) {
     panel.style.display = 'none';
-    if (panel.parentNode === document.body) panel.remove();
   });
   document.querySelectorAll('.lv-custom-trigger.open').forEach(function(trigger) {
     trigger.classList.remove('open');
@@ -4307,9 +4232,6 @@ function showPage(id) {
   }
   if (id === 'struktur-schreiben') {
     strukturLoadAndRender();
-  }
-  if (id === 'mdt3-afkar') {
-    afkarLoadAndRender();
   }
   if (id === 'mundlich-teil1' && (window.__gateUnlocked || window.__demoMode)) {
     fetchOneSection('mundlichdata').then(function(mddata) {
@@ -4838,8 +4760,6 @@ function switchTab(tab) {
   if (notifPanel) notifPanel.style.display = tab === 'notif' ? 'block' : 'none';
   var strukturPanel = document.getElementById('tab-panel-struktur');
   if (strukturPanel) strukturPanel.style.display = tab === 'struktur' ? 'block' : 'none';
-  var afkarPanel = document.getElementById('tab-panel-afkar');
-  if (afkarPanel) afkarPanel.style.display = tab === 'afkar' ? 'block' : 'none';
   document.getElementById('tab-codes').classList.toggle('active', tab === 'codes');
   document.getElementById('tab-names').classList.toggle('active', tab === 'names');
   var hvTab = document.getElementById('tab-hv');
@@ -4854,11 +4774,8 @@ function switchTab(tab) {
   if (notifTab) notifTab.classList.toggle('active', tab === 'notif');
   var strukturTab = document.getElementById('tab-struktur');
   if (strukturTab) strukturTab.classList.toggle('active', tab === 'struktur');
-  var afkarTab = document.getElementById('tab-afkar');
-  if (afkarTab) afkarTab.classList.toggle('active', tab === 'afkar');
   if (tab === 'notif') notifAdminLoad();
   if (tab === 'struktur') strukturAdminLoad();
-  if (tab === 'afkar') afkarAdminLoad();
   if (tab === 'exams') renderExamList();
   if (tab === 'names') {
     Promise.all([
@@ -10934,220 +10851,6 @@ async function strukturMoveCard(id, direction) {
   await pushSection('strukturdata', payload);
   strukturRenderAdminList();
 }
-
-// ============================================================
-// ====== AFKAR MDT3 — اختبارات لها نفس الأفكار ===============
-// ============================================================
-
-var _afkarData = []; // [{id, title, exams, ideas, order}]
-
-function afkarLoadAndRender() {
-  var loading = document.getElementById('afkar-loading');
-  var empty = document.getElementById('afkar-empty');
-  var groups = document.getElementById('afkar-groups');
-  if (loading) loading.style.display = 'block';
-  if (empty) empty.style.display = 'none';
-  if (groups) groups.innerHTML = '';
-  fetchOneSection('afkardata').then(function(data) {
-    if (loading) loading.style.display = 'none';
-    if (!data || Object.keys(data).length === 0) {
-      if (empty) empty.style.display = 'block';
-      return;
-    }
-    var arr = Object.keys(data).map(function(k) {
-      return Object.assign({}, data[k], {id: k});
-    }).sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
-    _afkarData = arr;
-    afkarRenderGroups(arr);
-  }).catch(function() {
-    if (loading) loading.style.display = 'none';
-    if (empty) empty.style.display = 'block';
-  });
-}
-
-function afkarRenderGroups(arr) {
-  var groups = document.getElementById('afkar-groups');
-  var empty = document.getElementById('afkar-empty');
-  if (!groups) return;
-  if (!arr || arr.length === 0) {
-    if (empty) empty.style.display = 'block';
-    return;
-  }
-  if (empty) empty.style.display = 'none';
-  groups.innerHTML = '';
-  arr.forEach(function(item, i) {
-    var card = document.createElement('div');
-    card.style.cssText = 'background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);';
-
-    // Header
-    var header = document.createElement('div');
-    header.style.cssText = 'background:var(--ink);padding:.85rem 1.2rem;display:flex;align-items:center;gap:.7rem;';
-    header.innerHTML =
-      '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;background:var(--accent);color:white;border-radius:6px;font-family:\'DM Mono\',monospace;font-size:.7rem;font-weight:700;flex-shrink:0;">' +
-        String(i + 1).padStart(2, '0') +
-      '</span>' +
-      '<span style="font-family:\'Playfair Display\',serif;font-size:1rem;font-weight:700;color:#fff;flex:1;">' + escHtml(item.title || '') + '</span>';
-    card.appendChild(header);
-
-    // Exams row
-    var examsArr = (item.exams || '').split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
-    if (examsArr.length > 0) {
-      var examsWrap = document.createElement('div');
-      examsWrap.style.cssText = 'padding:.7rem 1.2rem .5rem;display:flex;flex-wrap:wrap;gap:.45rem;border-bottom:1px solid var(--border);background:var(--cream);';
-      examsArr.forEach(function(ex) {
-        var chip = document.createElement('span');
-        chip.style.cssText = 'display:inline-flex;align-items:center;gap:.3rem;background:#fff;border:1.5px solid var(--border);border-radius:100px;padding:.28rem .75rem;font-size:.75rem;font-weight:600;color:var(--ink);';
-        chip.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' + escHtml(ex);
-        examsWrap.appendChild(chip);
-      });
-      card.appendChild(examsWrap);
-    }
-
-    // Ideas list
-    var ideasArr = (item.ideas || '').split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
-    if (ideasArr.length > 0) {
-      var ideasWrap = document.createElement('div');
-      ideasWrap.style.cssText = 'padding:.9rem 1.2rem 1rem;display:flex;flex-direction:column;gap:.55rem;';
-      ideasArr.forEach(function(idea) {
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:flex-start;gap:.6rem;';
-        row.innerHTML =
-          '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--accent-light);border-radius:50%;flex-shrink:0;margin-top:.1rem;">' +
-            '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3"><path d="M5 12h14"/></svg>' +
-          '</span>' +
-          '<span style="font-size:.88rem;line-height:1.65;color:var(--ink);direction:rtl;text-align:right;font-family:\'DM Sans\',sans-serif;">' + escHtml(idea) + '</span>';
-        ideasWrap.appendChild(row);
-      });
-      card.appendChild(ideasWrap);
-    }
-
-    groups.appendChild(card);
-  });
-}
-
-// ---- Admin ----
-function afkarAdminLoad() {
-  fetchSectionAsAdmin('afkardata').then(function(data) {
-    if (data && Object.keys(data).length > 0) {
-      var arr = Object.keys(data).map(function(k) {
-        return Object.assign({}, data[k], {id: k});
-      }).sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
-      _afkarData = arr;
-    } else {
-      _afkarData = [];
-    }
-    afkarRenderAdminList();
-  }).catch(function() { afkarRenderAdminList(); });
-}
-
-function afkarRenderAdminList() {
-  var list = document.getElementById('afkar-admin-list');
-  if (!list) return;
-  list.innerHTML = '';
-  if (_afkarData.length === 0) {
-    list.innerHTML = '<p style="font-size:.83rem;color:var(--muted);padding:.5rem 0;">لا توجد مجموعات بعد.</p>';
-    return;
-  }
-  _afkarData.forEach(function(item, i) {
-    var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:flex-start;gap:.75rem;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:.9rem 1rem;';
-    var examsPreview = (item.exams || '').split('\n').filter(Boolean).slice(0,2).join('، ');
-    var ideasCount = (item.ideas || '').split('\n').filter(Boolean).length;
-    row.innerHTML =
-      '<div style="flex:1;min-width:0;">' +
-        '<div style="font-size:.72rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem;">مجموعة ' + (i + 1) + '</div>' +
-        '<div style="font-size:.9rem;font-weight:600;margin-bottom:.3rem;">' + escHtml(item.title || '—') + '</div>' +
-        '<div style="font-size:.76rem;color:var(--muted);">' +
-          (examsPreview ? escHtml(examsPreview) + (item.exams && item.exams.split('\n').filter(Boolean).length > 2 ? '...' : '') : '—') +
-          ' · <span style="color:var(--accent);">' + ideasCount + ' فكرة</span>' +
-        '</div>' +
-      '</div>' +
-      '<div style="display:flex;gap:.4rem;flex-shrink:0;">' +
-        '<button onclick="afkarMoveGroup(\'' + item.id + '\',-1)" class="reorder-btn" title="تحريك لأعلى">▲</button>' +
-        '<button onclick="afkarMoveGroup(\'' + item.id + '\',1)" class="reorder-btn" title="تحريك لأسفل">▼</button>' +
-        '<button onclick="afkarDeleteGroup(\'' + item.id + '\')" class="sb-del-btn" title="حذف"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e53935" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' +
-      '</div>';
-    list.appendChild(row);
-  });
-}
-
-async function afkarSaveGroup() {
-  var titleEl = document.getElementById('afkar-group-title-input');
-  var examsEl = document.getElementById('afkar-group-exams-input');
-  var ideasEl = document.getElementById('afkar-group-ideas-input');
-  var feedback = document.getElementById('afkar-admin-feedback');
-  var title = titleEl ? titleEl.value.trim() : '';
-  var exams = examsEl ? examsEl.value.trim() : '';
-  var ideas = ideasEl ? ideasEl.value.trim() : '';
-  if (!title) {
-    if (feedback) { feedback.textContent = '⚠️ يرجى كتابة اسم المجموعة.'; feedback.style.color = '#c62828'; }
-    return;
-  }
-  if (!ideas) {
-    if (feedback) { feedback.textContent = '⚠️ يرجى كتابة الأفكار على الأقل.'; feedback.style.color = '#c62828'; }
-    return;
-  }
-  if (feedback) { feedback.textContent = '⏳ جاري الحفظ...'; feedback.style.color = 'var(--muted)'; }
-  var newId = 'afk_' + Date.now();
-  var maxOrder = _afkarData.reduce(function(m, x) { return Math.max(m, x.order || 0); }, 0);
-  var newGroup = { title: title, exams: exams, ideas: ideas, order: maxOrder + 1 };
-  var payload = {};
-  _afkarData.forEach(function(item) {
-    var c = Object.assign({}, item);
-    delete c.id;
-    payload[item.id] = c;
-  });
-  payload[newId] = newGroup;
-  var ok = await pushSection('afkardata', payload);
-  if (ok) {
-    _afkarData.push(Object.assign({id: newId}, newGroup));
-    afkarRenderAdminList();
-    if (titleEl) titleEl.value = '';
-    if (examsEl) examsEl.value = '';
-    if (ideasEl) ideasEl.value = '';
-    if (feedback) { feedback.textContent = '✅ تمت الإضافة بنجاح!'; feedback.style.color = '#2e7d32'; }
-    setTimeout(function() { if (feedback) feedback.textContent = ''; }, 3000);
-  } else {
-    if (feedback) { feedback.textContent = '❌ فشل الحفظ، حاول مجدداً.'; feedback.style.color = '#c62828'; }
-  }
-}
-
-async function afkarDeleteGroup(id) {
-  if (!confirm('هل تريد حذف هذه المجموعة؟')) return;
-  _afkarData = _afkarData.filter(function(x) { return x.id !== id; });
-  var payload = {};
-  _afkarData.forEach(function(item, i) {
-    var c = Object.assign({}, item);
-    delete c.id;
-    c.order = i + 1;
-    payload[item.id] = c;
-  });
-  var ok = await pushSection('afkardata', Object.keys(payload).length > 0 ? payload : null);
-  if (ok) { afkarRenderAdminList(); }
-}
-
-async function afkarMoveGroup(id, direction) {
-  var idx = _afkarData.findIndex(function(x) { return x.id === id; });
-  if (idx < 0) return;
-  var newIdx = idx + direction;
-  if (newIdx < 0 || newIdx >= _afkarData.length) return;
-  var tmp = _afkarData[idx];
-  _afkarData[idx] = _afkarData[newIdx];
-  _afkarData[newIdx] = tmp;
-  _afkarData.forEach(function(item, i) { item.order = i + 1; });
-  var payload = {};
-  _afkarData.forEach(function(item) {
-    var c = Object.assign({}, item);
-    delete c.id;
-    payload[item.id] = c;
-  });
-  await pushSection('afkardata', payload);
-  afkarRenderAdminList();
-}
-
-// ============================================================
-// ====== END AFKAR MDT3 =====================================
-// ============================================================
 
 async function notifDelete() {
   if (!confirm('هل تريد حذف الإشعار الحالي؟')) return;
