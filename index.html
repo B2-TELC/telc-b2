@@ -5911,11 +5911,13 @@ function switchSubTab(tab) {
 // ---- TEIL1 EDITOR (unified: name + titles + texts) ----
 let _t1CurrentId = null;
 function loadT1Data() {
-  if (remoteData.t1data && Object.keys(remoteData.t1data).length > 0) return remoteData.t1data;
-  try {
-    const raw = localStorage.getItem('telc_t1_data');
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  const raw = (remoteData.t1data && Object.keys(remoteData.t1data).length > 0)
+    ? remoteData.t1data
+    : (() => { try { const r = localStorage.getItem('telc_t1_data'); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
+  // Normalize keys to integers so loadT1Data()[intId] always works
+  const out = {};
+  Object.keys(raw).forEach(k => { if (raw[k]) out[parseInt(k)] = raw[k]; });
+  return out;
 }
 function saveT1Data(data) {
   remoteData.t1data = data;
@@ -6163,8 +6165,13 @@ for (let i = 1; i <= 30; i++) {
 }
 // Load & apply saved admin data for T2
 function loadT2Data() {
-  if (remoteData.t2data && Object.keys(remoteData.t2data).length > 0) return remoteData.t2data;
-  try { const r = localStorage.getItem('telc_t2_data'); return r ? JSON.parse(r) : {}; } catch { return {}; }
+  const raw = (remoteData.t2data && Object.keys(remoteData.t2data).length > 0)
+    ? remoteData.t2data
+    : (() => { try { const r = localStorage.getItem('telc_t2_data'); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
+  // Normalize keys to integers so loadT2Data()[intId] always works
+  const out = {};
+  Object.keys(raw).forEach(k => { if (raw[k]) out[parseInt(k)] = raw[k]; });
+  return out;
 }
 function saveT2Data(data) { remoteData.t2data = data; try { localStorage.removeItem('telc_t2_data'); } catch(e) {} pushT2Data(data).catch(function(e){ console.warn('saveT2Data error:', e); }); }
 function applyT2DataToExams() {
@@ -6730,13 +6737,13 @@ function saveT3Exam() {
   letters.forEach(l => {
     const val = getKwSelValue('t3lv-kw-title-' + l);
     if (val) kwTitles[l] = val;
-    else if (!kwTitles[l]) delete kwTitles[l];
+    // إذا كان الـ widget فارغاً، نحتفظ بالقيمة القديمة ولا نحذفها
   });
   const kwTexts = Object.assign({}, _oldSaved.kwTexts || {});
   ex.texts.forEach((t, i) => {
     const val = getKwSelValue('t3lv-kw-body-' + (i+1));
     if (val) kwTexts[i+1] = val;
-    else if (!kwTexts[i+1]) delete kwTexts[i+1];
+    // إذا كان الـ widget فارغاً، نحتفظ بالقيمة القديمة ولا نحذفها
   });
   data[id] = { name: ex.name, titles: ex.titles, texts: ex.texts, arTitles, arTexts, kwTitles, kwTexts };
   saveT3DataLV(data);
@@ -6747,14 +6754,9 @@ function deleteT3Exam(id) {
   const ex = teil3Exams.find(e => e.id === id);
   const exName = ex ? ex.name : ('Prüfung ' + id);
   showConfirm('حذف "' + exName + '"؟ لا يمكن التراجع.', function() {
-  const remaining = teil3Exams.filter(e => e.id !== id);
   const oldData = loadT3DataLV();
-  const newData = {};
-  remaining.forEach((e, idx) => {
-    const newId = idx + 1;
-    const saved = oldData[e.id] || {};
-    newData[newId] = { name: saved.name || e.name, titles: saved.titles || e.titles, texts: saved.texts || e.texts, arTitles: saved.arTitles || {}, arTexts: saved.arTexts || {}, kwTitles: saved.kwTitles || {}, kwTexts: saved.kwTexts || {} };
-  });
+  const newData = Object.assign({}, oldData);
+  delete newData[id];
   saveT3DataLV(newData);
   applyT3DataToExams();
   renderT3List();
@@ -6853,8 +6855,13 @@ for (let i = 2; i <= 30; i++) {
 }
 // Load & apply saved admin data for T3
 function loadT3DataLV() {
-  if (remoteData.t3lvdata && Object.keys(remoteData.t3lvdata).length > 0) return remoteData.t3lvdata;
-  try { const r = localStorage.getItem('telc_t3lv_data'); return r ? JSON.parse(r) : {}; } catch { return {}; }
+  const raw = (remoteData.t3lvdata && Object.keys(remoteData.t3lvdata).length > 0)
+    ? remoteData.t3lvdata
+    : (() => { try { const r = localStorage.getItem('telc_t3lv_data'); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
+  // Normalize keys to integers so loadT3DataLV()[intId] always works
+  const out = {};
+  Object.keys(raw).forEach(k => { if (raw[k]) out[parseInt(k)] = raw[k]; });
+  return out;
 }
 function saveT3DataLV(data) { remoteData.t3lvdata = data; try { localStorage.removeItem('telc_t3lv_data'); } catch(e) {} pushT3lvData(data).catch(function(e){ console.warn('saveT3DataLV error:', e); }); }
 function applyT3DataToExams() {
