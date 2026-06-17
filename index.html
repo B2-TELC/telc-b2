@@ -11,7 +11,7 @@
 <!-- ✅ [5] CSP: تمنع تنفيذ سكريبتات خارجية غير موثوقة -->
 <!-- ⚠️ unsafe-inline مطلوب بسبب الـ inline scripts والـ onclick attrs — لا يمكن إزالته بدون إعادة هيكلة كاملة -->
 <!-- ✅ تم تقوية الـ CSP بإضافة: object-src, frame-ancestors, base-uri, upgrade-insecure-requests -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com https://api.elevenlabs.io wss://api.elevenlabs.io https://cdn.jsdelivr.net https://unpkg.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -11577,6 +11577,7 @@ async function afkarMoveGroup(id, direction) {
   var _aiLoading = false;
   var _aiMuted = false;
   var _audioUnlocked = false;
+  var _currentAudio = null;
   var _isRecording = false;
   var _sessionStarted = false;
 
@@ -11619,8 +11620,8 @@ async function afkarMoveGroup(id, direction) {
     _aiTotalWords = 0;
     _aiRating = '—';
     _sessionStarted = false;
-    if (typeof aiStopSpeaking === 'function') aiStopSpeaking();
-    if (_scribeConnection) { try { _scribeConnection.close(); } catch(e){} _scribeConnection = null; }
+    if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+    if (_mediaRecorder && _mediaRecorder.state !== "inactive") { try { _mediaRecorder.stop(); } catch(e){} }
     _isRecording = false;
     var msgs = document.getElementById('ai-messages');
     if (msgs) msgs.innerHTML = '';
@@ -11702,145 +11703,83 @@ async function afkarMoveGroup(id, direction) {
     }
   };
 
-  // ── ElevenLabs Scribe (STT) — اتصال مباشر من المتصفح ────────────
-  // الفكرة: الـ Worker يصدر توكن مؤقت (صالح 15 دقيقة) فقط،
-  // والمتصفح يفتح اتصال WebSocket مباشر بـ ElevenLabs بدون أي وساطة
-  // (هذا يبقي الـ Worker خفيفاً جداً ومتوافقاً مع الخطة المجانية)
-  var _scribeConnection = null;
-  var _scribeModulePromise = null;
-  var _liveTranscript = '';
-
-  function loadScribeModule() {
-    if (!_scribeModulePromise) {
-      _scribeModulePromise = import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.14.0/+esm')
-        .catch(function() {
-          // jsDelivr فشل (مشكلة شبكة مؤقتة أو cache) — نجرّب unpkg كبديل
-          return import('https://unpkg.com/@elevenlabs/client@0.14.0/dist/lib.esm.js');
-        })
-        .catch(function(e) {
-          _scribeModulePromise = null; // نسمح بإعادة المحاولة في الضغطة القادمة
-          throw e;
-        });
-    }
-    return _scribeModulePromise;
-  }
-
-  function aiFetchElevenLabsTokens() {
-    var token = (window.__getToken ? window.__getToken() : null) || '';
-    return fetch(WORKER_URL + '/api/elevenlabs-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token }
-    }).then(function(r) {
-      if (!r.ok) {
-        return r.text().then(function(t) {
-          throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 150));
-        });
-      }
-      return r.json();
-    });
-  }
+  var _mediaRecorder = null;
+  var _audioChunks = [];
 
   function aiStartRecording() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       aiSetHint('❌ المتصفح لا يدعم الميكروفون');
       return;
     }
-    aiSetHint('⏳ جارٍ التحضير...');
-    Promise.all([loadScribeModule(), aiFetchElevenLabsTokens()])
-      .then(function(results) {
-        var mod = results[0];
-        var tokens = results[1];
-        if (!tokens || !tokens.stt_token) {
-          aiSetHint('❌ تعذّر الحصول على إذن الاتصال — حاول مرة أخرى');
-          return;
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        _audioChunks = [];
+        var mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
         }
-        _liveTranscript = '';
-        var sttGotAnyEvent = false;
-        var sttOpenTimeout = setTimeout(function() {
-          if (!sttGotAnyEvent && _isRecording) {
-            aiSetHint('❌ لا يوجد رد من خدمة الاستماع بعد 8 ثوان — احتمال حجب WebSocket في الشبكة');
-            aiStopRecording();
+        _mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+
+        _mediaRecorder.ondataavailable = function(e) {
+          if (e.data && e.data.size > 0) _audioChunks.push(e.data);
+        };
+
+        _mediaRecorder.onstop = function() {
+          stream.getTracks().forEach(function(t) { t.stop(); });
+          if (_audioChunks.length === 0) {
+            aiSetHint('❌ لم يُسمع كلام — حاول مرة أخرى');
+            return;
           }
-        }, 8000);
+          var blob = new Blob(_audioChunks, { type: mimeType });
+          _audioChunks = [];
+          aiSendToWhisper(blob);
+        };
 
-        _scribeConnection = mod.Scribe.connect({
-          token: tokens.stt_token,
-          modelId: 'scribe_v2_realtime',
-          languageCode: 'de',
-          commitStrategy: mod.CommitStrategy.VAD,
-          vadSilenceThresholdSecs: 1.2,
-          microphone: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
-
-        _scribeConnection.on(mod.RealtimeEvents.PARTIAL_TRANSCRIPT, function(data) {
-          sttGotAnyEvent = true;
-          clearTimeout(sttOpenTimeout);
-          aiSetHint('🔴 ' + (data.text || '...'));
-        });
-
-        _scribeConnection.on(mod.RealtimeEvents.COMMITTED_TRANSCRIPT, function(data) {
-          sttGotAnyEvent = true;
-          clearTimeout(sttOpenTimeout);
-          var text = (data.text || '').trim();
-          if (text) {
-            _liveTranscript = (_liveTranscript ? _liveTranscript + ' ' : '') + text;
-          }
-        });
-
-        _scribeConnection.on(mod.RealtimeEvents.ERROR, function(err) {
-          sttGotAnyEvent = true;
-          clearTimeout(sttOpenTimeout);
-          var msg = (err && (err.message || err.error || JSON.stringify(err))) || 'غير معروف';
-          aiSetHint('❌ STT: ' + String(msg).substring(0, 140));
-          aiStopRecording();
-        });
-
-        _scribeConnection.on(mod.RealtimeEvents.CLOSE, function() {
-          clearTimeout(sttOpenTimeout);
-          if (_isRecording) {
-            // أُغلق الاتصال من طرف الخادم (مثلاً صمت طويل) — نعامله كإيقاف طبيعي
-            _isRecording = false;
-            aiSetMicState('idle');
-            aiFinishRecording();
-          }
-        });
-
+        _mediaRecorder.start();
         _isRecording = true;
         aiSetMicState('recording');
-        aiSetHint('🔴 جارٍ الاستماع... تكلم بالألمانية');
+        aiSetHint('🔴 جارٍ الاستماع... تكلم ثم اضغط للإيقاف');
       })
-      .catch(function(e) {
-        var msg = (e && e.message) ? e.message : String(e);
-        aiSetHint('❌ ' + msg.substring(0, 140));
+      .catch(function() {
+        aiSetHint('❌ يجب السماح للموقع باستخدام المايك');
       });
   }
 
   function aiStopRecording() {
-    if (_scribeConnection) {
-      try { _scribeConnection.close(); } catch(e) {}
+    if (_mediaRecorder && _mediaRecorder.state !== 'inactive') {
+      _mediaRecorder.stop();
     }
     _isRecording = false;
     aiSetMicState('idle');
-    aiFinishRecording();
+    aiSetHint('⏳ جارٍ تحليل كلامك...');
   }
 
-  function aiFinishRecording() {
-    var text = _liveTranscript.trim();
-    _liveTranscript = '';
-    _scribeConnection = null;
-    if (text) {
-      aiSetHint('✅ تم التعرف على كلامك...');
-      setTimeout(function() { aiSubmitUserText(text); }, 150);
-    } else {
-      aiSetHint('❌ لم يُسمع كلام واضح — حاول مرة أخرى');
-    }
+  function aiSendToWhisper(blob) {
+    var token = (window.__getToken ? window.__getToken() : null) || '';
+    var formData = new FormData();
+    formData.append('audio', blob, 'audio.webm');
+    fetch(WORKER_URL + '/api/whisper', {
+      method: 'POST',
+      headers: { 'X-Session-Token': token },
+      body: formData
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.text && d.text.trim()) {
+        aiSetHint('✅ تم التعرف على كلامك...');
+        setTimeout(function() { aiSubmitUserText(d.text.trim()); }, 200);
+      } else {
+        aiSetHint('❌ لم يُسمع كلام واضح — حاول مرة أخرى');
+      }
+    })
+    .catch(function() {
+      aiSetHint('❌ خطأ في تحليل الصوت — حاول مرة أخرى');
+    });
   }
 
-  // ── ElevenLabs TTS WebSocket (streaming) — اتصال مباشر من المتصفح ─
+  // ── TTS ────────────────────────────────────────────────────────
   function aiUnlockAudio() {
     if (_audioUnlocked) return;
     _audioUnlocked = true;
@@ -11855,146 +11794,54 @@ async function afkarMoveGroup(id, direction) {
     } catch(e) {}
   }
 
-  // صوت الممتحنة — Voice ID من مكتبة ElevenLabs (صوت أنثوي واضح، مناسب لمعايير B2)
-  var ELEVEN_VOICE_ID = 'XFigb6fqZPxl2Q2dFOXN'; // صوت Frau Müller المختار من مكتبة ElevenLabs
-
   function aiSpeak(text, onEnd) {
     if (_aiMuted) { if (onEnd) onEnd(); return; }
+    if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     var cleanText = text.replace(/💡\s*Feedback:[^\n]*/gi, '').trim();
     if (!cleanText) { if (onEnd) onEnd(); return; }
 
-    aiStopSpeaking();
-    aiSetHint('⏳ جارٍ تحضير الصوت...');
-
-    aiFetchElevenLabsTokens().then(function(tokens) {
-      if (!tokens || !tokens.tts_token) {
-        aiSetHint('❌ تعذّر تحضير الصوت: ' + JSON.stringify(tokens).substring(0, 100));
-        if (onEnd) onEnd();
-        return;
+    var token = (window.__getToken ? window.__getToken() : null) || '';
+    aiSetHint('⏳ جارٍ تحميل الصوت...');
+    fetch(WORKER_URL + '/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+      body: JSON.stringify({ text: cleanText })
+    })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.text().then(function(t) {
+          aiSetHint('❌ TTS خطأ ' + r.status + ': ' + t.substring(0, 80));
+          throw new Error('TTS ' + r.status);
+        });
       }
-      // تشخيص: نتأكد من شكل التوكن قبل استخدامه (طول + أول/آخر حروف فقط، بدون كشف القيمة كاملة)
-      var tInfo = 'len=' + tokens.tts_token.length + ' start=' + tokens.tts_token.substring(0,10) + ' end=' + tokens.tts_token.slice(-6);
-      console.log('TTS token check: ' + tInfo);
-      aiSetHint('🔧 توكن: ' + tInfo);
-      setTimeout(function() {
-        aiPlayViaWebSocket(cleanText, tokens.tts_token, onEnd);
-      }, 1200); // نوقف لحظة لتقدر تقرأ/تصوّر معلومة التوكن قبل المحاولة
-    }).catch(function(e) {
-      aiSetHint('❌ خطأ تحضير الصوت: ' + (e && e.message ? e.message : e));
+      return r.json();
+    })
+    .then(function(d) {
+      if (!d.audio) { aiSetHint('❌ لا يوجد صوت في الرد'); if (onEnd) onEnd(); return; }
+      // تشغيل base64 مباشرة
+      var src = 'data:audio/mpeg;base64,' + d.audio;
+      _currentAudio = new Audio(src);
+      _currentAudio.onended = function() {
+        _currentAudio = null;
+        aiSetHint('اضغط للإجابة بالألمانية 🎤');
+        if (onEnd) onEnd();
+      };
+      _currentAudio.onerror = function(e) {
+        aiSetHint('❌ خطأ تشغيل الصوت');
+        _currentAudio = null;
+        if (onEnd) onEnd();
+      };
+      _currentAudio.play().then(function() {
+        aiSetHint('🔊 Frau Müller تتكلم...');
+      }).catch(function(e) {
+        aiSetHint('❌ play() رفض: ' + e.message);
+        if (onEnd) onEnd();
+      });
+    })
+    .catch(function(e) {
+      aiSetHint('❌ fetch خطأ: ' + e.message);
       if (onEnd) onEnd();
     });
-  }
-
-  // مشغّل صوت تسلسلي: يستقبل قطع MP3 من WebSocket ويشغّلها بترتيبها
-  // فور وصولها، بدل انتظار اكتمال كل الصوت (هذا هو جوهر تقليل الـ latency)
-  var _ttsSocket = null;
-  var _ttsAudioQueue = [];
-  var _ttsCurrentAudio = null;
-  var _ttsPlayingDone = false;
-  var _ttsOnEndCb = null;
-
-  function aiStopSpeaking() {
-    if (_ttsSocket) { try { _ttsSocket.close(); } catch(e) {} _ttsSocket = null; }
-    if (_ttsCurrentAudio) { try { _ttsCurrentAudio.pause(); } catch(e) {} _ttsCurrentAudio = null; }
-    _ttsAudioQueue = [];
-    _ttsPlayingDone = false;
-    _ttsOnEndCb = null;
-  }
-
-  function aiPlayViaWebSocket(text, ttsToken, onEnd) {
-    _ttsAudioQueue = [];
-    _ttsPlayingDone = false;
-    _ttsOnEndCb = onEnd;
-    var firstChunkPlayed = false;
-    var opened = false;
-
-    var wsUrl = 'wss://api.elevenlabs.io/v1/text-to-speech/' + ELEVEN_VOICE_ID +
-      '/stream-input?model_id=eleven_flash_v2_5&output_format=mp3_44100&single_use_token=' + encodeURIComponent(ttsToken);
-    var socket = new WebSocket(wsUrl);
-    _ttsSocket = socket;
-
-    // حماية ضد "التعليق الصامت" — لو لم يفتح الاتصال خلال 8 ثوان نعرض خطأ صريح
-    var openTimeout = setTimeout(function() {
-      if (!opened && _ttsSocket === socket) {
-        aiSetHint('❌ انتهت مهلة الاتصال بخدمة الصوت (8 ثوان بدون رد) — تحقق من حجب WebSocket في الشبكة/المتصفح');
-        try { socket.close(); } catch(e) {}
-        _ttsSocket = null;
-        if (onEnd) onEnd();
-      }
-    }, 8000);
-
-    socket.onopen = function() {
-      opened = true;
-      clearTimeout(openTimeout);
-      socket.send(JSON.stringify({
-        text: ' ',
-        voice_settings: { speed: 0.95, stability: 0.5, similarity_boost: 0.8 }
-      }));
-      socket.send(JSON.stringify({ text: text }));
-      socket.send(JSON.stringify({ text: '' })); // يغلق الإدخال ويطلب الصوت المتبقي
-    };
-
-    socket.onmessage = function(event) {
-      var msg;
-      try { msg = JSON.parse(event.data); } catch(e) { return; }
-      if (msg.audio) {
-        _ttsAudioQueue.push(msg.audio);
-        if (!firstChunkPlayed) {
-          firstChunkPlayed = true;
-          aiSetHint('🔊 Frau Müller تتكلم...');
-        }
-        aiTtsPlayNext();
-      }
-      if (msg.isFinal) {
-        _ttsPlayingDone = true;
-        aiTtsCheckAllDone();
-      }
-    };
-
-    socket.onerror = function(e) {
-      console.error('TTS WebSocket error event:', e);
-    };
-
-    socket.onclose = function(e) {
-      clearTimeout(openTimeout);
-      _ttsSocket = null;
-      console.log('TTS WebSocket closed:', e && e.code, e && e.reason);
-      if (!_ttsPlayingDone) {
-        aiSetHint('❌ صوت أُغلق قبل الانتهاء — code=' + (e ? e.code : '?') + ' reason="' + (e && e.reason ? e.reason : '(فاضي)') + '"');
-        aiStopSpeaking();
-        if (onEnd) onEnd();
-      }
-    };
-  }
-
-  function aiTtsPlayNext() {
-    if (_ttsCurrentAudio) return; // صوت قيد التشغيل حالياً — ننتظر انتهاءه
-    var chunk = _ttsAudioQueue.shift();
-    if (!chunk) return;
-    var audio = new Audio('data:audio/mpeg;base64,' + chunk);
-    _ttsCurrentAudio = audio;
-    audio.onended = function() {
-      _ttsCurrentAudio = null;
-      aiTtsPlayNext();
-      aiTtsCheckAllDone();
-    };
-    audio.onerror = function() {
-      _ttsCurrentAudio = null;
-      aiTtsPlayNext();
-      aiTtsCheckAllDone();
-    };
-    audio.play().catch(function() {
-      _ttsCurrentAudio = null;
-    });
-  }
-
-  function aiTtsCheckAllDone() {
-    if (_ttsPlayingDone && _ttsAudioQueue.length === 0 && !_ttsCurrentAudio) {
-      aiSetHint('اضغط للإجابة بالألمانية 🎤');
-      var cb = _ttsOnEndCb;
-      _ttsOnEndCb = null;
-      if (cb) cb();
-    }
   }
 
   // ── Mute ───────────────────────────────────────────────────────
@@ -12007,7 +11854,7 @@ async function afkarMoveGroup(id, direction) {
       if (icon) icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
       if (label) label.textContent = 'مكتوم';
       if (btn) btn.style.color = 'var(--accent)';
-      if (typeof aiStopSpeaking === 'function') aiStopSpeaking();
+      if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     } else {
       if (icon) icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>';
       if (label) label.textContent = 'صوت';
