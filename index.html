@@ -11712,7 +11712,15 @@ async function afkarMoveGroup(id, direction) {
 
   function loadScribeModule() {
     if (!_scribeModulePromise) {
-      _scribeModulePromise = import('https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm');
+      _scribeModulePromise = import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.14.0/+esm')
+        .catch(function() {
+          // jsDelivr فشل (مشكلة شبكة مؤقتة أو cache) — نجرّب unpkg كبديل
+          return import('https://unpkg.com/@elevenlabs/client@0.14.0/dist/lib.esm.js');
+        })
+        .catch(function(e) {
+          _scribeModulePromise = null; // نسمح بإعادة المحاولة في الضغطة القادمة
+          throw e;
+        });
     }
     return _scribeModulePromise;
   }
@@ -11747,6 +11755,14 @@ async function afkarMoveGroup(id, direction) {
           return;
         }
         _liveTranscript = '';
+        var sttGotAnyEvent = false;
+        var sttOpenTimeout = setTimeout(function() {
+          if (!sttGotAnyEvent && _isRecording) {
+            aiSetHint('❌ لا يوجد رد من خدمة الاستماع بعد 8 ثوان — احتمال حجب WebSocket في الشبكة');
+            aiStopRecording();
+          }
+        }, 8000);
+
         _scribeConnection = mod.Scribe.connect({
           token: tokens.stt_token,
           modelId: 'scribe_v2_realtime',
@@ -11761,10 +11777,14 @@ async function afkarMoveGroup(id, direction) {
         });
 
         _scribeConnection.on(mod.RealtimeEvents.PARTIAL_TRANSCRIPT, function(data) {
+          sttGotAnyEvent = true;
+          clearTimeout(sttOpenTimeout);
           aiSetHint('🔴 ' + (data.text || '...'));
         });
 
         _scribeConnection.on(mod.RealtimeEvents.COMMITTED_TRANSCRIPT, function(data) {
+          sttGotAnyEvent = true;
+          clearTimeout(sttOpenTimeout);
           var text = (data.text || '').trim();
           if (text) {
             _liveTranscript = (_liveTranscript ? _liveTranscript + ' ' : '') + text;
@@ -11772,12 +11792,15 @@ async function afkarMoveGroup(id, direction) {
         });
 
         _scribeConnection.on(mod.RealtimeEvents.ERROR, function(err) {
+          sttGotAnyEvent = true;
+          clearTimeout(sttOpenTimeout);
           var msg = (err && (err.message || err.error || JSON.stringify(err))) || 'غير معروف';
           aiSetHint('❌ STT: ' + String(msg).substring(0, 140));
           aiStopRecording();
         });
 
         _scribeConnection.on(mod.RealtimeEvents.CLOSE, function() {
+          clearTimeout(sttOpenTimeout);
           if (_isRecording) {
             // أُغلق الاتصال من طرف الخادم (مثلاً صمت طويل) — نعامله كإيقاف طبيعي
             _isRecording = false;
@@ -11877,13 +11900,26 @@ async function afkarMoveGroup(id, direction) {
     _ttsPlayingDone = false;
     _ttsOnEndCb = onEnd;
     var firstChunkPlayed = false;
+    var opened = false;
 
     var wsUrl = 'wss://api.elevenlabs.io/v1/text-to-speech/' + ELEVEN_VOICE_ID +
       '/stream-input?model_id=eleven_flash_v2_5&output_format=mp3_44100&single_use_token=' + encodeURIComponent(ttsToken);
     var socket = new WebSocket(wsUrl);
     _ttsSocket = socket;
 
+    // حماية ضد "التعليق الصامت" — لو لم يفتح الاتصال خلال 8 ثوان نعرض خطأ صريح
+    var openTimeout = setTimeout(function() {
+      if (!opened && _ttsSocket === socket) {
+        aiSetHint('❌ انتهت مهلة الاتصال بخدمة الصوت (8 ثوان بدون رد) — تحقق من حجب WebSocket في الشبكة/المتصفح');
+        try { socket.close(); } catch(e) {}
+        _ttsSocket = null;
+        if (onEnd) onEnd();
+      }
+    }, 8000);
+
     socket.onopen = function() {
+      opened = true;
+      clearTimeout(openTimeout);
       socket.send(JSON.stringify({
         text: ' ',
         voice_settings: { speed: 0.95, stability: 0.5, similarity_boost: 0.8 }
@@ -11910,14 +11946,15 @@ async function afkarMoveGroup(id, direction) {
     };
 
     socket.onerror = function(e) {
-      aiSetHint('❌ خطأ WebSocket صوت (سيظهر التفصيل عند الإغلاق)');
+      console.error('TTS WebSocket error event:', e);
     };
 
     socket.onclose = function(e) {
+      clearTimeout(openTimeout);
       _ttsSocket = null;
-      // code !== 1000 يعني إغلاق غير طبيعي — نعرض السبب إن وجد
-      if (e && e.code !== 1000 && !_ttsPlayingDone) {
-        aiSetHint('❌ صوت أُغلق: code=' + e.code + ' reason=' + (e.reason || 'غير معروف'));
+      console.log('TTS WebSocket closed:', e && e.code, e && e.reason);
+      if (!_ttsPlayingDone) {
+        aiSetHint('❌ صوت أُغلق قبل الانتهاء — code=' + (e ? e.code : '?') + ' reason="' + (e && e.reason ? e.reason : '(فاضي)') + '"');
         aiStopSpeaking();
         if (onEnd) onEnd();
       }
