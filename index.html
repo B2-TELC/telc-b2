@@ -142,6 +142,11 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 .ai-score-key{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:center;}
 .ai-reset-btn{margin-left:auto;background:none;border:1px solid var(--border);border-radius:8px;padding:.35rem .8rem;font-size:.75rem;color:var(--muted);font-family:'DM Sans',sans-serif;cursor:pointer;transition:border-color .15s,color .15s;}
 .ai-reset-btn:hover{border-color:var(--accent);color:var(--accent);}
+.ai-final-report{background:var(--card);border:2px solid var(--accent);border-radius:14px;padding:1.25rem 1.5rem;margin:1rem 0;text-align:center;}
+.ai-final-score{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:900;color:var(--accent);line-height:1;}
+.ai-final-score span{font-size:1.1rem;color:var(--muted);font-weight:700;}
+.ai-final-label{font-size:.85rem;color:var(--muted);margin-top:.25rem;font-weight:700;}
+.ai-final-summary{font-size:.9rem;color:var(--text);margin-top:.85rem;line-height:1.7;text-align:right;}
 .ai-info-box{background:var(--accent-light);border:1px solid #e8c4b0;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#7a3a18;line-height:1.6;direction:rtl;text-align:right;}
 .ai-info-box strong{display:block;font-size:.85rem;margin-bottom:.3rem;color:var(--accent);}
 @media(max-width:640px){.ai-msg-bubble{max-width:90%;font-size:.84rem;}.ai-chat-wrap{padding:.7rem .6rem 2rem;}#page-ai-chat .cat-header{padding:.9rem .85rem .7rem;}#page-ai-chat .cat-kicker{margin-bottom:.4rem;}#page-ai-chat .cat-title{font-size:1.4rem !important;margin-bottom:.3rem;}#page-ai-chat .cat-lead{font-size:.8rem;}#page-ai-chat .back-btn{margin-bottom:.7rem;}#page-ai-chat .ai-info-box{display:none;}#page-ai-chat .ai-teil-selector{margin-bottom:.7rem;gap:.4rem;flex-wrap:nowrap;}#page-ai-chat .ai-teil-btn{padding:.5rem .5rem;font-size:.74rem;flex:1;text-align:center;}#page-ai-chat .ai-teil-full{display:none;}#page-ai-chat .ai-teil-short{display:inline;}#page-ai-chat .ai-start-screen{padding:.6rem .5rem;gap:.7rem;}#page-ai-chat .ai-start-avatar{width:60px;height:60px;font-size:1.15rem;}#page-ai-chat .ai-start-name{font-size:1.05rem;}#page-ai-chat .ai-start-desc{font-size:.8rem;max-width:260px;}#page-ai-chat .ai-start-btn{padding:.75rem 1.8rem;font-size:.9rem;}}
@@ -11580,12 +11585,67 @@ async function afkarMoveGroup(id, direction) {
   var _currentAudio = null;
   var _isRecording = false;
   var _sessionStarted = false;
+  var _sessionEnded = false;
+
+  // ── حالة الجلسة (State Machine) — Teil 1 ────────────────────────
+  // المراحل: greeting → presentation → q1 → q2 → closing → done
+  var _t1Stage = 'greeting';
+
+  // البنية الثابتة لـ Teil 1 — لا تتغير أبداً مهما طالت المحادثة
+  var T1_BASE_PROMPT =
+    'Du bist Frau Müller, eine erfahrene TELC B2 Deutsch Prüferin. ' +
+    'Der Kandidat übt Teil 1 der mündlichen Prüfung: Präsentation eines Themas (Buch, Film, Reise, Musikveranstaltung oder Sportereignis), gefolgt von genau 2 Fragen der Prüferin dazu.\n\n' +
+    'ABLAUF (du MUSST diesen exakt befolgen, unabhängig davon wie lang das Gespräch wird):\n' +
+    '1. Begrüßung: kurz, freundlich, auf Deutsch. Erkläre die Aufgabe in 1-2 Sätzen und fordere den Kandidaten auf, sein Thema zu präsentieren.\n' +
+    '2. Präsentation: Der Kandidat stellt sein Thema vor. Du hörst zu, ohne zu unterbrechen.\n' +
+    '3. Frage 1: Stelle GENAU EINE konkrete, relevante Frage zur Präsentation (max. 2 Sätze).\n' +
+    '4. Frage 2: Nach der Antwort, stelle GENAU EINE weitere Frage (anderer Aspekt, max. 2 Sätze).\n' +
+    '5. Abschluss: Nach der zweiten Antwort, bedanke dich kurz, erkläre dass Teil 1 beendet ist, und beende den Teil — KEINE weiteren Fragen mehr.\n\n' +
+    'REGELN:\n' +
+    '- Du stellst IMMER nur eine Frage pro Antwort, niemals mehr.\n' +
+    '- Du gehst NIE über die 2 Fragen hinaus, auch wenn der Kandidat kurz antwortet.\n' +
+    '- Jede deine Antwort (außer der Begrüßung) endet mit einer Zeile "💡 Feedback:" auf Arabisch — 1 kurzer, konkreter Satz zu einem Grammatik- oder Wortschatzpunkt aus der letzten Antwort des Kandidaten.\n' +
+    '- Antworte IMMER auf Deutsch (B2-Niveau, klar und natürlich). Falls der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren — das zählt nicht als eine der 2 Fragen.\n' +
+    '- Sei unterstützend und ermutigend, wie eine echte, freundliche Prüferin.';
+
+  // يولّد تعليمات إضافية تحدد "أين نحن الآن بالضبط" — تُضاف فوق البرومبت الأساسي
+  function t1StageInstruction(stage) {
+    switch (stage) {
+      case 'greeting':
+        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten und fordere ihn auf, sein Thema zu präsentieren. Stelle noch KEINE inhaltliche Frage.';
+      case 'presentation':
+        return 'AKTUELLE PHASE: Der Kandidat hat gerade sein Thema präsentiert. Stelle jetzt FRAGE 1 (die erste von genau 2 Fragen) zu einem Aspekt der Präsentation.';
+      case 'q1':
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben Frage 1 beantwortet. Stelle jetzt FRAGE 2 (die letzte Frage, ein anderer Aspekt des Themas).';
+      case 'q2':
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben Frage 2 beantwortet — das war die letzte Frage. Bedanke dich kurz, sage dass Teil 1 hiermit beendet ist, und stelle KEINE weitere Frage. Füge trotzdem "💡 Feedback:" hinzu.';
+      default:
+        return 'AKTUELLE PHASE: Die Sitzung ist beendet. Antworte nur kurz und höflich, ohne neue Fragen.';
+    }
+  }
+
+  function t1BuildPrompt(stage) {
+    return T1_BASE_PROMPT + '\n\n' + t1StageInstruction(stage);
+  }
 
   var TEIL_PROMPTS = {
-    t1: 'Du bist Frau Müller, eine TELC B2 Deutsch Prüferin. Der Kandidat übt Teil 1: mündliche Präsentation. Deine Aufgabe: Begrüße den Kandidaten kurz und freundlich auf Deutsch, erkläre dass er ein Thema präsentieren soll (Buch, Film, Reise, Musikveranstaltung oder Sportereignis), und stelle eine Eröffnungsfrage. Nach jeder Antwort des Kandidaten: stelle eine kurze Folgefrage (max 2 Sätze) und füge am Ende "💡 Feedback:" auf Arabisch hinzu (1 kurzer Satz zu Grammatik oder Wortschatz). Antworte immer auf Deutsch. Wenn der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren.',
     t2: 'Du bist Frau Müller, eine TELC B2 Deutsch Prüferin. Der Kandidat übt Teil 2: Diskussion. Begrüße ihn kurz, schlage ein Diskussionsthema vor (Umwelt, Arbeit, Familie, Gesundheit usw.) und stelle eine erste Frage. Nach jeder Antwort: stelle eine Gegenfrage oder fordere Begründung (max 2 Sätze) und füge "💡 Feedback:" auf Arabisch hinzu.',
     t3: 'Du bist Frau Müller, eine TELC B2 Deutsch Prüferin. Der Kandidat übt Teil 3: Partnerdiskussion. Begrüße ihn kurz, schlage ein gesellschaftliches Thema vor, verteile Positionen und beginne die Diskussion. Nach jeder Antwort: reagiere auf das Argument (max 2 Sätze) und füge "💡 Feedback:" auf Arabisch hinzu.'
   };
+
+  // يرجع system prompt المناسب بحسب الـ Teil المختار وحالة الجلسة
+  function getSystemPromptFor(teil) {
+    if (teil === 't1') return t1BuildPrompt(_t1Stage);
+    return TEIL_PROMPTS[teil];
+  }
+
+  // ينقل حالة Teil 1 للمرحلة التالية بعد كل رد من الطالب
+  function t1AdvanceStage() {
+    if (_t1Stage === 'greeting') { _t1Stage = 'presentation'; }
+    else if (_t1Stage === 'presentation') { _t1Stage = 'q1'; }
+    else if (_t1Stage === 'q1') { _t1Stage = 'q2'; }
+    else if (_t1Stage === 'q2') { _t1Stage = 'done'; }
+  }
 
   // ── Teil selector ──────────────────────────────────────────────
   window.aiSelectTeil = function(teil) {
@@ -11620,6 +11680,8 @@ async function afkarMoveGroup(id, direction) {
     _aiTotalWords = 0;
     _aiRating = '—';
     _sessionStarted = false;
+    _t1Stage = 'greeting';
+    _sessionEnded = false;
     if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     if (_mediaRecorder && _mediaRecorder.state !== "inactive") { try { _mediaRecorder.stop(); } catch(e){} }
     _isRecording = false;
@@ -11642,7 +11704,7 @@ async function afkarMoveGroup(id, direction) {
   function aiGetFirstMessage() {
     _aiLoading = true;
     aiSetHint('Frau Müller تستعد...');
-    callAiApi(TEIL_PROMPTS[_aiTeil], [], function(reply) {
+    callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
       _aiLoading = false;
       aiAppendMessage('bot', reply);
       _aiHistory.push({ role: 'assistant', content: reply });
@@ -11668,7 +11730,7 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Submit user text ───────────────────────────────────────────
   function aiSubmitUserText(text) {
-    if (_aiLoading) return;
+    if (_aiLoading || _sessionEnded) return;
     aiAppendMessage('user', text);
     _aiHistory.push({ role: 'user', content: text });
     _aiTurns++;
@@ -11680,17 +11742,85 @@ async function afkarMoveGroup(id, direction) {
     var micBtn = document.getElementById('ai-mic-btn');
     if (micBtn) micBtn.disabled = true;
     aiSetHint('Frau Müller تفكر...');
-    callAiApi(TEIL_PROMPTS[_aiTeil], _aiHistory, function(reply) {
+
+    var systemPrompt = getSystemPromptFor(_aiTeil);
+    var wasLastStage = (_aiTeil === 't1' && _t1Stage === 'q2');
+
+    callAiApi(systemPrompt, _aiHistory, function(reply) {
       _aiLoading = false;
       aiAppendMessage('bot', reply);
       _aiHistory.push({ role: 'assistant', content: reply });
-      aiRateLastTurn(text);
-      aiSpeakThenEnableMic(reply);
+
+      if (_aiTeil === 't1') t1AdvanceStage();
+
+      if (wasLastStage && _aiTeil === 't1') {
+        // كانت هذه آخر مرحلة — أغلق الجلسة وابدأ التقييم الحقيقي
+        _sessionEnded = true;
+        aiSpeak(reply, function() {
+          aiFinishSessionAndRate();
+        });
+      } else {
+        aiSpeakThenEnableMic(reply);
+      }
     }, function() {
       _aiLoading = false;
       if (micBtn) micBtn.disabled = false;
       aiSetHint('❌ خطأ — حاول مرة أخرى');
     });
+  }
+
+  // ── Final real rating (telc B2 criteria, 25 points) ─────────────
+  var RATING_PROMPT_T1 =
+    'Du bist ein erfahrener TELC B2 Prüfer/Bewerter. Du bekommst das Transkript einer mündlichen Prüfung (Teil 1: Präsentation + 2 Fragen). ' +
+    'Bewerte NUR die Antworten des Kandidaten (role: user) nach den offiziellen telc B2 Kriterien für den mündlichen Teil 1:\n' +
+    '- Ausdruck & Wortschatz (Vielfalt, Angemessenheit)\n' +
+    '- Grammatik & Korrektheit (Strukturen, Fehlerhäufigkeit)\n' +
+    '- Aussprache & Flüssigkeit (soweit aus dem Text erkennbar: Zusammenhang, Klarheit)\n' +
+    '- Aufgabenerfüllung (Inhalt, Themenbezug, Vollständigkeit der Präsentation und Antworten)\n\n' +
+    'Gib eine GESAMTPUNKTZAHL von 0 bis 25 (ganze Zahl), realistisch wie ein echter Prüfer — nicht großzügig, nicht streng, sondern fair nach B2-Niveau.\n' +
+    'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne Markdown, ohne Erklärung davor oder danach, exakt in diesem Format:\n' +
+    '{"score": <Zahl 0-25>, "summary_ar": "<2-3 kurze Sätze auf Arabisch: Gesamteindruck, größte Stärke, größter Verbesserungspunkt>"}';
+
+  function aiFinishSessionAndRate() {
+    aiSetHint('⏳ Frau Müller تحضّر تقييمك النهائي...');
+    var micCenter = document.getElementById('ai-mic-center');
+    if (micCenter) micCenter.style.display = 'none';
+
+    callAiApi(RATING_PROMPT_T1, _aiHistory, function(reply) {
+      var parsed = null;
+      try {
+        var clean = reply.replace(/```json|```/g, '').trim();
+        parsed = JSON.parse(clean);
+      } catch (e) { parsed = null; }
+
+      if (parsed && typeof parsed.score === 'number') {
+        _aiRating = Math.max(0, Math.min(25, Math.round(parsed.score))) + '/25';
+        aiUpdateScores();
+        aiShowFinalReport(parsed.score, parsed.summary_ar || '');
+      } else {
+        _aiRating = '—';
+        aiUpdateScores();
+        aiSetHint('انتهت الجلسة ✅ (تعذّر إصدار تقييم تفصيلي)');
+      }
+    }, function() {
+      aiSetHint('انتهت الجلسة ✅ (حدث خطأ أثناء التقييم)');
+    }, true);
+  }
+
+  // ── Show final report bubble ─────────────────────────────────────
+  function aiShowFinalReport(score, summaryAr) {
+    var msgs = document.getElementById('ai-messages');
+    if (!msgs) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'ai-final-report';
+    wrap.innerHTML =
+      '<div class="ai-final-score">' + Math.round(score) + '<span>/25</span></div>' +
+      '<div class="ai-final-label">📋 التقييم النهائي — Teil 1</div>' +
+      (summaryAr ? '<div class="ai-final-summary">' + escHtml(summaryAr) + '</div>' : '') +
+      '<button class="ai-reset-btn" onclick="aiReset()" style="margin-top:.75rem;">&#8634; جلسة جديدة</button>';
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+    aiSetHint('✅ انتهت الجلسة — تحقّق من تقييمك أعلاه');
   }
 
   // ── Mic toggle ─────────────────────────────────────────────────
@@ -11810,26 +11940,13 @@ async function afkarMoveGroup(id, direction) {
     .then(function(r) {
       if (!r.ok) {
         return r.text().then(function(t) {
-          // نحاول نفك تشفير رسالة الخطأ الحقيقية القادمة من ElevenLabs (متداخلة JSON داخل JSON)
-          var detail = t;
-          try {
-            var outer = JSON.parse(t);
-            detail = outer.detail || outer.error || t;
-            try {
-              var inner = JSON.parse(detail);
-              if (inner && inner.detail && inner.detail.message) detail = inner.detail.message;
-              else if (inner && inner.detail && inner.detail.status) detail = inner.detail.status;
-              else if (inner && inner.message) detail = inner.message;
-            } catch(e3) {}
-          } catch(e2) {}
-          aiSetHint('❌ TTS خطأ ' + r.status + ': ' + String(detail).substring(0, 140));
-          return null; // لا نرمي throw — حتى لا تُمسح هذه الرسالة المفيدة بالرسالة العامة في catch
+          aiSetHint('❌ TTS خطأ ' + r.status + ': ' + t.substring(0, 80));
+          throw new Error('TTS ' + r.status);
         });
       }
       return r.json();
     })
     .then(function(d) {
-      if (!d) { if (onEnd) onEnd(); return; } // الخطأ مُعالَج ومعروض أعلاه بالفعل
       if (!d.audio) { aiSetHint('❌ لا يوجد صوت في الرد'); if (onEnd) onEnd(); return; }
       // تشغيل base64 مباشرة
       var src = 'data:audio/mpeg;base64,' + d.audio;
@@ -11876,12 +11993,13 @@ async function afkarMoveGroup(id, direction) {
   };
 
   // ── Claude/GPT API ─────────────────────────────────────────────
-  function callAiApi(systemPrompt, history, onSuccess, onError) {
+  function callAiApi(systemPrompt, history, onSuccess, onError, fullHistory) {
     var token = (window.__getToken ? window.__getToken() : null) || '';
+    var sentHistory = fullHistory ? history : history.slice(-10);
     fetch(WORKER_URL + '/api/ai-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-      body: JSON.stringify({ system: systemPrompt, messages: history.slice(-10) })
+      body: JSON.stringify({ system: systemPrompt, messages: sentHistory })
     })
     .then(function(r) { return r.json(); })
     .then(function(d) { if (d && d.reply) onSuccess(d.reply); else onError(); })
@@ -11889,12 +12007,6 @@ async function afkarMoveGroup(id, direction) {
   }
 
   // ── Rating ─────────────────────────────────────────────────────
-  function aiRateLastTurn(text) {
-    var words = text.split(/\s+/).filter(Boolean).length;
-    _aiRating = words >= 25 ? 'B2' : words >= 12 ? 'B1' : 'A2';
-    aiUpdateScores();
-  }
-
   function aiUpdateScores() {
     var t = document.getElementById('ai-score-turns');
     var w = document.getElementById('ai-score-words');
