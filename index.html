@@ -11810,13 +11810,26 @@ async function afkarMoveGroup(id, direction) {
     .then(function(r) {
       if (!r.ok) {
         return r.text().then(function(t) {
-          aiSetHint('❌ TTS خطأ ' + r.status + ': ' + t.substring(0, 80));
-          throw new Error('TTS ' + r.status);
+          // نحاول نفك تشفير رسالة الخطأ الحقيقية القادمة من ElevenLabs (متداخلة JSON داخل JSON)
+          var detail = t;
+          try {
+            var outer = JSON.parse(t);
+            detail = outer.detail || outer.error || t;
+            try {
+              var inner = JSON.parse(detail);
+              if (inner && inner.detail && inner.detail.message) detail = inner.detail.message;
+              else if (inner && inner.detail && inner.detail.status) detail = inner.detail.status;
+              else if (inner && inner.message) detail = inner.message;
+            } catch(e3) {}
+          } catch(e2) {}
+          aiSetHint('❌ TTS خطأ ' + r.status + ': ' + String(detail).substring(0, 140));
+          return null; // لا نرمي throw — حتى لا تُمسح هذه الرسالة المفيدة بالرسالة العامة في catch
         });
       }
       return r.json();
     })
     .then(function(d) {
+      if (!d) { if (onEnd) onEnd(); return; } // الخطأ مُعالَج ومعروض أعلاه بالفعل
       if (!d.audio) { aiSetHint('❌ لا يوجد صوت في الرد'); if (onEnd) onEnd(); return; }
       // تشغيل base64 مباشرة
       var src = 'data:audio/mpeg;base64,' + d.audio;
