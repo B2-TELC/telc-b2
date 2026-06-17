@@ -11872,7 +11872,13 @@ async function afkarMoveGroup(id, direction) {
         if (onEnd) onEnd();
         return;
       }
-      aiPlayViaWebSocket(cleanText, tokens.tts_token, onEnd);
+      // تشخيص: نتأكد من شكل التوكن قبل استخدامه (طول + أول/آخر حروف فقط، بدون كشف القيمة كاملة)
+      var tInfo = 'len=' + tokens.tts_token.length + ' start=' + tokens.tts_token.substring(0,10) + ' end=' + tokens.tts_token.slice(-6);
+      console.log('TTS token check: ' + tInfo);
+      aiSetHint('🔧 توكن: ' + tInfo);
+      setTimeout(function() {
+        aiPlayViaWebSocket(cleanText, tokens.tts_token, onEnd);
+      }, 1200); // نوقف لحظة لتقدر تقرأ/تصوّر معلومة التوكن قبل المحاولة
     }).catch(function(e) {
       aiSetHint('❌ خطأ تحضير الصوت: ' + (e && e.message ? e.message : e));
       if (onEnd) onEnd();
