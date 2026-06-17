@@ -11712,15 +11712,7 @@ async function afkarMoveGroup(id, direction) {
 
   function loadScribeModule() {
     if (!_scribeModulePromise) {
-      _scribeModulePromise = import('https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.14.0/+esm')
-        .catch(function() {
-          // jsDelivr فشل (مشكلة شبكة مؤقتة أو cache) — نجرّب unpkg كبديل
-          return import('https://unpkg.com/@elevenlabs/client@0.14.0/dist/lib.esm.js');
-        })
-        .catch(function(e) {
-          _scribeModulePromise = null; // نسمح بإعادة المحاولة في الضغطة القادمة
-          throw e;
-        });
+      _scribeModulePromise = import('https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm');
     }
     return _scribeModulePromise;
   }
@@ -11918,14 +11910,14 @@ async function afkarMoveGroup(id, direction) {
     };
 
     socket.onerror = function(e) {
-      console.error('TTS WebSocket error event:', e);
+      aiSetHint('❌ خطأ WebSocket صوت (سيظهر التفصيل عند الإغلاق)');
     };
 
     socket.onclose = function(e) {
       _ttsSocket = null;
-      console.log('TTS WebSocket closed:', e && e.code, e && e.reason);
-      if (!_ttsPlayingDone) {
-        aiSetHint('❌ صوت أُغلق قبل الانتهاء — code=' + (e ? e.code : '?') + ' reason="' + (e && e.reason ? e.reason : '(فاضي)') + '"');
+      // code !== 1000 يعني إغلاق غير طبيعي — نعرض السبب إن وجد
+      if (e && e.code !== 1000 && !_ttsPlayingDone) {
+        aiSetHint('❌ صوت أُغلق: code=' + e.code + ' reason=' + (e.reason || 'غير معروف'));
         aiStopSpeaking();
         if (onEnd) onEnd();
       }
