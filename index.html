@@ -3943,37 +3943,37 @@ async function checkGate() {
     }
     const now = new Date();
     let verifyRes, verifyData;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      verifyRes = await fetch(WORKER_URL + '/api/verify-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: val }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      verifyData = await verifyRes.json();
-    } catch(fetchErr) {
-      // retry مرة واحدة تلقائياً بعد 1.5 ثانية
-      await new Promise(r => setTimeout(r, 1500));
+    // ✅ محاولات متعددة مع مهلة متزايدة لدعم الاتصال الضعيف
+    // (4 محاولات: 12s, 16s, 22s, 28s — بدل محاولتين بـ 10s فقط)
+    const _attemptTimeouts = [12000, 16000, 22000, 28000];
+    const _attemptWaits = [0, 1500, 2500, 4000];
+    let _lastErrType = 'network';
+    for (let _i = 0; _i < _attemptTimeouts.length; _i++) {
+      if (_attemptWaits[_i] > 0) {
+        // أخبر المستخدم أنه يحاول من جديد بدل تركه ينتظر بدون أي إشارة
+        if (btn) { btn.textContent = 'إعادة المحاولة (' + (_i + 1) + '/' + _attemptTimeouts.length + ')...'; }
+        await new Promise(r => setTimeout(r, _attemptWaits[_i]));
+      }
       try {
-        const controller2 = new AbortController();
-        const timeoutId2 = setTimeout(() => controller2.abort(), 10000);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), _attemptTimeouts[_i]);
         verifyRes = await fetch(WORKER_URL + '/api/verify-code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: val }),
-          signal: controller2.signal
+          signal: controller.signal
         });
-        clearTimeout(timeoutId2);
+        clearTimeout(timeoutId);
         verifyData = await verifyRes.json();
-      } catch(fetchErr2) {
-        if (fetchErr2.name === 'AbortError') {
-          throw { type: 'timeout' };
-        }
-        throw { type: 'network' };
+        _lastErrType = null;
+        break; // نجحت المحاولة — اخرج من الحلقة
+      } catch(fetchErr) {
+        _lastErrType = (fetchErr && fetchErr.name === 'AbortError') ? 'timeout' : 'network';
+        // إذا كانت هذه آخر محاولة، اترك الخطأ يُرمى بعد الحلقة
       }
+    }
+    if (_lastErrType) {
+      throw { type: _lastErrType };
     }
     if (!verifyRes.ok) {
       throw { type: verifyData.error || 'invalid' };
