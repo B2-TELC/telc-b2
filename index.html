@@ -11921,6 +11921,9 @@ async function afkarMoveGroup(id, direction) {
       reply = reply.replace(/\n*💡\s*Feedback:[^\n]*/gi, '').trim();
       aiAppendMessage('bot', reply);
       _aiHistory.push({ role: 'assistant', content: reply });
+      // مرحلة الترحيب استُهلكت الآن — انتقل لمرحلة السؤال التالي قبل أن يردّ المستخدم
+      if (_aiTeil === 't1') t1AdvanceStage();
+      if (_aiTeil === 't2') t2AdvanceStage();
       // تتكلم أولاً ثم تفتح المايك
       aiSpeakThenEnableMic(reply);
     }, function() {
@@ -11973,8 +11976,11 @@ async function afkarMoveGroup(id, direction) {
       if (_aiTeil === 't2') t2AdvanceStage();
 
       if (wasLastStage && (_aiTeil === 't1' || _aiTeil === 't2' || _aiTeil === 't3')) {
-        // كانت هذه آخر مرحلة — أغلق الجلسة وابدأ التقييم الحقيقي
+        // كانت هذه آخر مرحلة — أغلق الجلسة فوراً (قبل حتى تشغيل الصوت) لمنع أي تفاعل إضافي
         _sessionEnded = true;
+        if (micBtn) micBtn.disabled = true;
+        var micCenterNow = document.getElementById('ai-mic-center');
+        if (micCenterNow) micCenterNow.style.display = 'none';
         aiSpeak(reply, function() {
           aiFinishSessionAndRate();
         });
