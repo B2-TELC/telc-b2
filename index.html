@@ -11743,10 +11743,13 @@ async function afkarMoveGroup(id, direction) {
   }
 
   // ── حالة الجلسة — Teil 3 (مناقشة مع Partner) ────────────────────
-  // لا توجد مراحل ثابتة كما في Teil 1/2 لأن Teil 3 نقاش حر يهدف لاتفاق مشترك بعد 5-6 تبادلات تقريباً
+  // لا توجد مراحل ثابتة كما في Teil 1/2 لأن Teil 3 نقاش حر — الموديل نفسه يقرر متى تم الوصول لاتفاق طبيعي
+  // ضمن نطاق مرن (4-8 تبادلات) بدل رقم ثابت، مع سقف أعلى صارم يضمن إنهاء الجلسة دائماً
   var _t3Topic = null; // الموضوع الحقيقي المختار من بنك اختبارات Teil 3
   var _t3TurnCount = 0; // عدد ردود المستخدم في هذه الجلسة
-  var T3_TARGET_TURNS = 6; // الهدف: إنهاء النقاش باتفاق مشترك بعد هذا العدد تقريباً من تبادلات المستخدم
+  var T3_MIN_TURNS = 4;  // أقل عدد تبادلات قبل قبول إشارة "تم الاتفاق" من الموديل
+  var T3_MAX_TURNS = 8;  // سقف صارم — تُغلق الجلسة دائماً عند هذا العدد حتى لو لم يُصدر الموديل إشارة الاتفاق
+  var T3_AGREEMENT_MARKER = '[EINIGUNG_ERREICHT]'; // إشارة داخلية يضيفها الموديل عند الوصول لاتفاق طبيعي
 
   // يختار اختباراً حقيقياً عشوائياً من بنك Teil 3 (نفس الاختبارات التي يراها المستخدم في صفحة Teil 3)
   function t3PickRandomTopic() {
@@ -11783,7 +11786,10 @@ async function afkarMoveGroup(id, direction) {
       '- Du bringst EIGENE Vorschläge und Ideen ein, du widersprichst auch mal höflich, du fragst nach der Meinung des Kandidaten, du reagierst auf seine Vorschläge — wie ein echter Gesprächspartner, nicht wie ein Interviewer.\n' +
       '- Du führst die Diskussion natürlich durch die oben genannten Schritte (Vorschläge sammeln, Vor- und Nachteile abwägen, sich einigen).\n' +
       '- Du sprichst in JEDER Antwort nur 2-3 Sätze (kurz, wie in einem echten Gespräch), niemals einen langen Monolog.\n' +
-      '- Das Gespräch soll nach ca. ' + T3_TARGET_TURNS + ' Antworten des Kandidaten zu einer GEMEINSAMEN EINIGUNG (gemeinsame Entscheidung) kommen. Steuere die Diskussion aktiv in diese Richtung — dränge sanft auf eine Einigung, je näher ihr dem Ende kommt.\n\n' +
+      '- Das Gespräch soll zu einer GEMEINSAMEN EINIGUNG (gemeinsame Entscheidung) kommen, normalerweise nach etwa ' + T3_MIN_TURNS + ' bis ' + T3_MAX_TURNS + ' Antworten des Kandidaten — aber DU entscheidest, wann der richtige natürliche Moment dafür ist (nicht zu früh, nicht unnötig in die Länge gezogen).\n\n' +
+      'WICHTIG — WIE DU DAS ENDE SIGNALISIERST:\n' +
+      'Wenn ihr in DIESER Antwort eine echte, natürliche gemeinsame Einigung erreicht habt (ihr habt eine konkrete Entscheidung getroffen, der Kandidat hat zugestimmt oder ihr habt euch auf eine Lösung geeinigt), schreibe deine Abschlussantwort (Zusammenfassung der Einigung + kurzer Dank, dass Teil 3 beendet ist) und füge GANZ AM ENDE, NACH der Feedback-Zeile, in einer eigenen neuen Zeile EXAKT diesen Marker hinzu: ' + T3_AGREEMENT_MARKER + '\n' +
+      'Füge diesen Marker NUR hinzu, wenn ihr WIRKLICH fertig seid und eine Einigung erreicht habt — niemals als Frage oder Zwischenschritt. Wenn die Diskussion noch nicht reif für eine Einigung ist, führe sie normal weiter OHNE den Marker.\n\n' +
       'REGELN:\n' +
       '- Du stellst oder kommentierst IMMER nur EINEN Punkt pro Antwort, niemals mehrere Themen gleichzeitig.\n' +
       '- Jede deine Antwort (außer der allerersten Eröffnung) endet mit einer Zeile "💡 Feedback:" auf Arabisch — 1 kurzer, konkreter Satz zu einem Grammatik- oder Wortschatzpunkt aus der letzten Antwort des Kandidaten. WICHTIG: Bei der allerersten Eröffnungsnachricht (wenn der Kandidat noch NICHTS gesagt hat) darfst du KEINE Feedback-Zeile hinzufügen.\n' +
@@ -11795,15 +11801,15 @@ async function afkarMoveGroup(id, direction) {
   // يولّد تعليمات إضافية حسب تقدّم النقاش (عدد ردود المستخدم حتى الآن)
   function t3StageInstruction(turnCount) {
     if (turnCount === 0) {
-      return 'AKTUELLE PHASE: Eröffnung. Begrüße den Kandidaten kurz, fasse die Aufgabe in 1-2 Sätzen zusammen und mache den ERSTEN eigenen Vorschlag zum Thema, um die Diskussion zu starten. Füge KEINE "💡 Feedback"-Zeile hinzu, da der Kandidat noch nichts gesagt hat.';
+      return 'AKTUELLE PHASE: Eröffnung. Begrüße den Kandidaten kurz, fasse die Aufgabe in 1-2 Sätzen zusammen und mache den ERSTEN eigenen Vorschlag zum Thema, um die Diskussion zu starten. Füge KEINE "💡 Feedback"-Zeile und KEINEN Einigungs-Marker hinzu, da der Kandidat noch nichts gesagt hat.';
     }
-    if (turnCount >= T3_TARGET_TURNS) {
-      return 'AKTUELLE PHASE: Abschluss. Ihr habt nun genug diskutiert. Fasse die GEMEINSAME EINIGUNG in 1-2 Sätzen zusammen (basierend auf dem bisherigen Gespräch), bedanke dich kurz und erkläre, dass Teil 3 hiermit beendet ist. Stelle KEINE weitere Frage und mache KEINEN neuen Vorschlag mehr. Füge trotzdem "💡 Feedback:" hinzu.';
+    if (turnCount >= T3_MAX_TURNS) {
+      return 'AKTUELLE PHASE: ZWINGENDER Abschluss (Antwort ' + turnCount + ' — das Maximum ist erreicht). Ihr müsst JETZT zu einer Einigung kommen, auch wenn ihr noch nicht ganz fertig seid. Fasse die GEMEINSAME EINIGUNG in 1-2 Sätzen zusammen (basierend auf dem bisherigen Gespräch, auch wenn du dafür einen Kompromiss formulieren musst), bedanke dich kurz und erkläre, dass Teil 3 hiermit beendet ist. Stelle KEINE weitere Frage. Füge die "💡 Feedback:"-Zeile UND danach den Marker ' + T3_AGREEMENT_MARKER + ' hinzu — das ist PFLICHT in dieser Antwort.';
     }
-    if (turnCount >= T3_TARGET_TURNS - 2) {
-      return 'AKTUELLE PHASE: Ihr nähert euch dem Ende (Antwort ' + turnCount + ' von ca. ' + T3_TARGET_TURNS + '). Beginne, sanft auf eine gemeinsame Einigung hinzuarbeiten — fasse zusammen, was ihr bisher besprochen habt, und schlage vor, euch auf eine Lösung zu einigen.';
+    if (turnCount < T3_MIN_TURNS) {
+      return 'AKTUELLE PHASE: Frühe Diskussion (Antwort ' + turnCount + ' von mindestens ' + T3_MIN_TURNS + '). Reagiere auf den letzten Punkt des Kandidaten und bring den nächsten Schritt der Aufgabe oder einen neuen Aspekt ein. Es ist noch ZU FRÜH für eine Einigung — füge den Marker ' + T3_AGREEMENT_MARKER + ' NICHT hinzu, auch wenn der Kandidat schon zustimmt.';
     }
-    return 'AKTUELLE PHASE: Mitte der Diskussion (Antwort ' + turnCount + ' von ca. ' + T3_TARGET_TURNS + '). Reagiere auf den letzten Punkt des Kandidaten (zustimmen, höflich widersprechen oder nachfragen) und bring den nächsten Schritt der Aufgabe oder einen neuen Aspekt ein.';
+    return 'AKTUELLE PHASE: Diskussion läuft (Antwort ' + turnCount + ', zwischen ' + T3_MIN_TURNS + ' und ' + T3_MAX_TURNS + '). Reagiere auf den letzten Punkt des Kandidaten (zustimmen, höflich widersprechen oder nachfragen). Wenn sich JETZT ein natürlicher gemeinsamer Konsens ergibt, schließe mit der Einigung ab und füge den Marker ' + T3_AGREEMENT_MARKER + ' hinzu. Wenn nicht, führe die Diskussion normal weiter (ohne Marker) und arbeitet weiter auf eine Lösung hin.';
   }
 
   function t3BuildPrompt() {
@@ -11885,7 +11891,6 @@ async function afkarMoveGroup(id, direction) {
     _sessionEnded = false;
     if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     if (_mediaRecorder && _mediaRecorder.state !== "inactive") { try { _mediaRecorder.stop(); } catch(e){} }
-    aiStopSilenceDetection();
     _isRecording = false;
     var msgs = document.getElementById('ai-messages');
     if (msgs) msgs.innerHTML = '';
@@ -11965,19 +11970,32 @@ async function afkarMoveGroup(id, direction) {
 
     var systemPrompt = getSystemPromptFor(_aiTeil);
     var wasLastStage = (_aiTeil === 't1' && _t1Stage === 'q2') ||
-                        (_aiTeil === 't2' && _t2Stage === 'vorteilnachteil') ||
-                        (_aiTeil === 't3' && _t3TurnCount >= T3_TARGET_TURNS);
+                        (_aiTeil === 't2' && _t2Stage === 'vorteilnachteil');
 
     callAiApi(systemPrompt, _aiHistory, function(reply) {
       _aiLoading = false;
+
+      // Teil 3: اكشف عن إشارة الاتفاق وأزلها من النص قبل العرض والنطق
+      var t3AgreementReached = false;
+      if (_aiTeil === 't3') {
+        if (reply.indexOf(T3_AGREEMENT_MARKER) !== -1) {
+          t3AgreementReached = true;
+          reply = reply.split(T3_AGREEMENT_MARKER).join('').trim();
+        }
+        // السقف الأعلى الصارم — أغلق دائماً عند الوصول للحد الأقصى حتى لو غاب الماركر
+        if (_t3TurnCount >= T3_MAX_TURNS) t3AgreementReached = true;
+      }
+
       aiAppendMessage('bot', reply);
       _aiHistory.push({ role: 'assistant', content: reply });
 
       if (_aiTeil === 't1') t1AdvanceStage();
       if (_aiTeil === 't2') t2AdvanceStage();
 
-      if (wasLastStage && (_aiTeil === 't1' || _aiTeil === 't2' || _aiTeil === 't3')) {
-        // كانت هذه آخر مرحلة — أغلق الجلسة فوراً (قبل حتى تشغيل الصوت) لمنع أي تفاعل إضافي
+      var isLastTurn = wasLastStage || t3AgreementReached;
+
+      if (isLastTurn) {
+        // انتهت الجلسة — أغلق المايك فوراً قبل تشغيل الصوت لمنع أي تفاعل إضافي
         _sessionEnded = true;
         if (micBtn) micBtn.disabled = true;
         var micCenterNow = document.getElementById('ai-mic-center');
@@ -12108,16 +12126,6 @@ async function afkarMoveGroup(id, direction) {
 
   var _mediaRecorder = null;
   var _audioChunks = [];
-  // ── كشف الصمت التلقائي ──
-  var _silenceAudioCtx = null;
-  var _silenceAnalyser = null;
-  var _silenceCheckInterval = null;
-  var _silenceStartedAt = null;     // أول لحظة بدأ فيها صمت متواصل
-  var _recordingStartedAt = null;   // لحظة بدء التسجيل (لتجاهل الصمت الأولي قبل أن يتكلم المستخدم)
-  var SILENCE_THRESHOLD = 0.012;    // مستوى صوت أقل من هذا يُعتبر صمتاً (RMS تقريبي)
-  var SILENCE_DURATION_MS = 1500;   // مدة الصمت المتواصل اللازمة لإيقاف التسجيل تلقائياً
-  var MIN_SPEECH_BEFORE_AUTOSTOP_MS = 600; // أقل مدة كلام قبل قبول إيقاف تلقائي (يمنع توقفاً فورياً خاطئاً)
-  var _hasDetectedSpeech = false;   // أصبح true بعد أول مرة يتعدى الصوت العتبة
 
   function aiStartRecording() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -12141,7 +12149,6 @@ async function afkarMoveGroup(id, direction) {
 
         _mediaRecorder.onstop = function() {
           stream.getTracks().forEach(function(t) { t.stop(); });
-          aiStopSilenceDetection();
           if (_audioChunks.length === 0) {
             aiSetHint('❌ لم يُسمع كلام — حاول مرة أخرى');
             return;
@@ -12153,69 +12160,12 @@ async function afkarMoveGroup(id, direction) {
 
         _mediaRecorder.start();
         _isRecording = true;
-        _hasDetectedSpeech = false;
-        _silenceStartedAt = null;
-        _recordingStartedAt = Date.now();
         aiSetMicState('recording');
-        aiSetHint('🔴 جارٍ الاستماع... تكلم، سيتوقف تلقائياً عند الصمت');
-        aiStartSilenceDetection(stream);
+        aiSetHint('🔴 جارٍ الاستماع... تكلم ثم اضغط للإيقاف');
       })
       .catch(function() {
         aiSetHint('❌ يجب السماح للموقع باستخدام المايك');
       });
-  }
-
-  // ── يبدأ تحليل مستوى الصوت لاكتشاف الصمت المتواصل وإيقاف التسجيل تلقائياً ──
-  function aiStartSilenceDetection(stream) {
-    try {
-      var AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return; // المتصفح لا يدعم — التسجيل يبقى يدوياً فقط، بدون كسر أي شيء
-      _silenceAudioCtx = new AudioCtx();
-      var source = _silenceAudioCtx.createMediaStreamSource(stream);
-      _silenceAnalyser = _silenceAudioCtx.createAnalyser();
-      _silenceAnalyser.fftSize = 512;
-      source.connect(_silenceAnalyser);
-      var buffer = new Uint8Array(_silenceAnalyser.fftSize);
-
-      _silenceCheckInterval = setInterval(function() {
-        if (!_isRecording || !_silenceAnalyser) return;
-        _silenceAnalyser.getByteTimeDomainData(buffer);
-        // حساب RMS تقريبي لمستوى الصوت (0 = صمت تام، أكبر = صوت أعلى)
-        var sumSquares = 0;
-        for (var i = 0; i < buffer.length; i++) {
-          var norm = (buffer[i] - 128) / 128;
-          sumSquares += norm * norm;
-        }
-        var rms = Math.sqrt(sumSquares / buffer.length);
-        var now = Date.now();
-
-        if (rms > SILENCE_THRESHOLD) {
-          // المستخدم يتكلم الآن — صفّر مؤقت الصمت
-          _hasDetectedSpeech = true;
-          _silenceStartedAt = null;
-        } else {
-          // صمت حالي — ابدأ أو استمر بعدّ مدة الصمت
-          if (_silenceStartedAt === null) _silenceStartedAt = now;
-          var silenceDuration = now - _silenceStartedAt;
-          var speechDuration = now - _recordingStartedAt;
-          if (_hasDetectedSpeech && speechDuration > MIN_SPEECH_BEFORE_AUTOSTOP_MS && silenceDuration >= SILENCE_DURATION_MS) {
-            // صمت كافٍ بعد أن تكلم المستخدم فعلاً — أوقف التسجيل تلقائياً
-            aiStopRecording();
-          }
-        }
-      }, 150);
-    } catch (e) {
-      // فشل إعداد كشف الصمت لا يجب أن يعطّل التسجيل اليدوي العادي
-      _silenceAnalyser = null;
-    }
-  }
-
-  // ── ينظّف موارد كشف الصمت (يُستدعى عند إيقاف التسجيل بأي طريقة) ──
-  function aiStopSilenceDetection() {
-    if (_silenceCheckInterval) { clearInterval(_silenceCheckInterval); _silenceCheckInterval = null; }
-    if (_silenceAudioCtx) { try { _silenceAudioCtx.close(); } catch(e) {} _silenceAudioCtx = null; }
-    _silenceAnalyser = null;
-    _silenceStartedAt = null;
   }
 
   function aiStopRecording() {
