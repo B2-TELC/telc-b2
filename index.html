@@ -11618,7 +11618,7 @@ async function afkarMoveGroup(id, direction) {
   function t1StageInstruction(stage) {
     switch (stage) {
       case 'greeting':
-        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten und fordere ihn auf, sein Thema zu präsentieren. Stelle noch KEINE inhaltliche Frage.';
+        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten und fordere ihn auf, sein Thema zu präsentieren. Stelle noch KEINE inhaltliche Frage. WICHTIG: Der Kandidat hat noch NICHTS gesagt — füge KEINE "💡 Feedback:"-Zeile hinzu, da es noch keine Antwort zu bewerten gibt.';
       case 'presentation':
         return 'AKTUELLE PHASE: Der Kandidat hat gerade sein Thema präsentiert. Stelle jetzt FRAGE 1 (die erste von genau 2 Fragen) zu einem Aspekt der Präsentation.';
       case 'q1':
@@ -11699,7 +11699,7 @@ async function afkarMoveGroup(id, direction) {
   function t2StageInstruction(stage) {
     switch (stage) {
       case 'greeting':
-        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten kurz und stelle FRAGE 1: bitte ihn, den Inhalt des Textes mit eigenen Worten zusammenzufassen. Stelle noch KEINE andere Frage (noch keine Meinungsfrage).';
+        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten kurz und stelle FRAGE 1: bitte ihn, den Inhalt des Textes mit eigenen Worten zusammenzufassen. Stelle noch KEINE andere Frage (noch keine Meinungsfrage). WICHTIG: Der Kandidat hat noch NICHTS gesagt — füge KEINE "💡 Feedback:"-Zeile hinzu, da es noch keine Antwort zu bewerten gibt.';
       case 'inhalt':
         return 'AKTUELLE PHASE: Der Kandidat hat soeben den INHALT zusammengefasst. Stelle jetzt FRAGE 2 (die Meinungsfrage).';
       case 'meinung':
@@ -11826,6 +11826,8 @@ async function afkarMoveGroup(id, direction) {
     }
     callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
       _aiLoading = false;
+      // الرسالة الأولى (ترحيب) لا يوجد فيها رد للمستخدم لتقييمه — احذف أي "💡 Feedback" قد يضيفه الموديل خطأً
+      reply = reply.replace(/\n*💡\s*Feedback:[^\n]*/gi, '').trim();
       aiAppendMessage('bot', reply);
       _aiHistory.push({ role: 'assistant', content: reply });
       // تتكلم أولاً ثم تفتح المايك
