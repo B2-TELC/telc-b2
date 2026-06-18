@@ -12145,7 +12145,17 @@ async function afkarMoveGroup(id, direction) {
       headers: { 'X-Session-Token': token },
       body: formData
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      return r.text().then(function(raw) {
+        var d;
+        try { d = JSON.parse(raw); } catch(e) { d = null; }
+        if (!r.ok) {
+          var detail = (d && (d.detail || d.error)) || raw.substring(0, 80) || ('HTTP ' + r.status);
+          throw new Error(detail);
+        }
+        return d || {};
+      });
+    })
     .then(function(d) {
       if (d && d.text && d.text.trim()) {
         aiSetHint('✅ تم التعرف على كلامك...');
@@ -12154,8 +12164,9 @@ async function afkarMoveGroup(id, direction) {
         aiSetHint('❌ لم يُسمع كلام واضح — حاول مرة أخرى');
       }
     })
-    .catch(function() {
-      aiSetHint('❌ خطأ في تحليل الصوت — حاول مرة أخرى');
+    .catch(function(e) {
+      console.error('Whisper error:', e);
+      aiSetHint('❌ خطأ في تحليل الصوت: ' + (e && e.message ? e.message : 'غير معروف') + ' — حاول مرة أخرى');
     });
   }
 
