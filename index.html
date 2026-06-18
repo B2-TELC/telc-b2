@@ -154,6 +154,8 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 .ai-topic-card-head span{font-size:.72rem;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;}
 .ai-topic-card-name{font-size:.95rem;font-weight:700;color:var(--ink);padding:.7rem .9rem .2rem;font-family:'Playfair Display',serif;}
 .ai-topic-card-text{font-size:.82rem;line-height:1.75;color:var(--ink);font-style:italic;font-family:'Playfair Display',serif;padding:.3rem .9rem .8rem;margin:0;}
+.ai-topic-card-steps{margin:0;padding:.2rem 1.6rem .85rem;font-size:.82rem;line-height:1.65;color:var(--ink);direction:ltr;text-align:left;}
+.ai-topic-card-steps li{margin-bottom:.25rem;}
 @media(max-width:640px){.ai-msg-bubble{max-width:90%;font-size:.84rem;}.ai-chat-wrap{padding:.7rem .6rem 2rem;}#page-ai-chat .cat-header{padding:.9rem .85rem .7rem;}#page-ai-chat .cat-kicker{margin-bottom:.4rem;}#page-ai-chat .cat-title{font-size:1.4rem !important;margin-bottom:.3rem;}#page-ai-chat .cat-lead{font-size:.8rem;}#page-ai-chat .back-btn{margin-bottom:.7rem;}#page-ai-chat .ai-info-box{display:none;}#page-ai-chat .ai-teil-selector{margin-bottom:.7rem;gap:.4rem;flex-wrap:nowrap;}#page-ai-chat .ai-teil-btn{padding:.5rem .5rem;font-size:.74rem;flex:1;text-align:center;}#page-ai-chat .ai-teil-full{display:none;}#page-ai-chat .ai-teil-short{display:inline;}#page-ai-chat .ai-start-screen{padding:.6rem .5rem;gap:.7rem;}#page-ai-chat .ai-start-avatar{width:60px;height:60px;font-size:1.15rem;}#page-ai-chat .ai-start-name{font-size:1.05rem;}#page-ai-chat .ai-start-desc{font-size:.8rem;max-width:260px;}#page-ai-chat .ai-start-btn{padding:.75rem 1.8rem;font-size:.9rem;}}
 .ai-start-screen{display:flex;flex-direction:column;align-items:center;gap:1rem;padding:2rem 1rem;text-align:center;}
 .ai-start-avatar{width:72px;height:72px;border-radius:50%;background:var(--accent);color:white;font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(200,96,42,.3);}
@@ -11740,15 +11742,98 @@ async function afkarMoveGroup(id, direction) {
       '</div>';
   }
 
-  var TEIL_PROMPTS = {
-    t3: 'Du bist Frau Müller, eine TELC B2 Deutsch Prüferin. Der Kandidat übt Teil 3: Partnerdiskussion. Begrüße ihn kurz, schlage ein gesellschaftliches Thema vor, verteile Positionen und beginne die Diskussion. Nach jeder Antwort: reagiere auf das Argument (max 2 Sätze) und füge "💡 Feedback:" auf Arabisch hinzu.'
-  };
+  // ── حالة الجلسة — Teil 3 (مناقشة مع Partner) ────────────────────
+  // لا توجد مراحل ثابتة كما في Teil 1/2 لأن Teil 3 نقاش حر يهدف لاتفاق مشترك بعد 5-6 تبادلات تقريباً
+  var _t3Topic = null; // الموضوع الحقيقي المختار من بنك اختبارات Teil 3
+  var _t3TurnCount = 0; // عدد ردود المستخدم في هذه الجلسة
+  var T3_TARGET_TURNS = 6; // الهدف: إنهاء النقاش باتفاق مشترك بعد هذا العدد تقريباً من تبادلات المستخدم
+
+  // يختار اختباراً حقيقياً عشوائياً من بنك Teil 3 (نفس الاختبارات التي يراها المستخدم في صفحة Teil 3)
+  function t3PickRandomTopic() {
+    var exams = (typeof mdt3GetExams === 'function') ? mdt3GetExams() : [];
+    if (!exams || !exams.length) return null;
+    var ex = exams[Math.floor(Math.random() * exams.length)];
+    var steps = (ex.steps || []).filter(Boolean);
+    var dialog = (ex.dialog || []).filter(Boolean);
+    return {
+      name: ex.name || '',
+      text: ex.text || '',
+      steps: steps,
+      dialog: dialog
+    };
+  }
+
+  // يبني البرومبت الأساسي لـ Teil 3 اعتماداً على الموضوع الحقيقي المختار
+  function t3BuildBasePrompt(topic) {
+    var stepsList = (topic.steps && topic.steps.length)
+      ? topic.steps.map(function(s, i) { return (i + 1) + '. ' + s; }).join('\n')
+      : '(keine spezifischen Schritte vorgegeben — führe eine natürliche Planungsdiskussion zum Thema)';
+    var dialogRef = (topic.dialog && topic.dialog.length)
+      ? topic.dialog.join(' / ')
+      : '';
+    return (
+      'Du bist "Partner", der Gesprächspartner des Kandidaten in der mündlichen TELC B2 Prüfung Teil 3 (Partnerdiskussion / gemeinsame Planung). ' +
+      'Du bist NICHT die Prüferin — du bist ein gleichwertiger Gesprächspartner, der mit dem Kandidaten gemeinsam eine Aufgabe lösen, etwas planen oder organisieren muss.\n\n' +
+      'DIE AUFGABE (Kontext für dich — der Kandidat sieht den Aufgabentext und die Schritte bereits auf dem Bildschirm):\n' +
+      'Titel: ' + (topic.name || '—') + '\n' +
+      (topic.text ? ('Aufgabenstellung: ' + topic.text + '\n') : '') +
+      'Schritte, die ihr gemeinsam durchgehen müsst:\n' + stepsList + '\n' +
+      (dialogRef ? ('\nMUSTERDIALOG (NUR für dich als Stil-/Inhaltsreferenz — zitiere ihn NICHT wörtlich, nutze ihn nur als Orientierung für typische Formulierungen und Ideen): ' + dialogRef + '\n') : '') +
+      '\nDEINE ROLLE:\n' +
+      '- Du bringst EIGENE Vorschläge und Ideen ein, du widersprichst auch mal höflich, du fragst nach der Meinung des Kandidaten, du reagierst auf seine Vorschläge — wie ein echter Gesprächspartner, nicht wie ein Interviewer.\n' +
+      '- Du führst die Diskussion natürlich durch die oben genannten Schritte (Vorschläge sammeln, Vor- und Nachteile abwägen, sich einigen).\n' +
+      '- Du sprichst in JEDER Antwort nur 2-3 Sätze (kurz, wie in einem echten Gespräch), niemals einen langen Monolog.\n' +
+      '- Das Gespräch soll nach ca. ' + T3_TARGET_TURNS + ' Antworten des Kandidaten zu einer GEMEINSAMEN EINIGUNG (gemeinsame Entscheidung) kommen. Steuere die Diskussion aktiv in diese Richtung — dränge sanft auf eine Einigung, je näher ihr dem Ende kommt.\n\n' +
+      'REGELN:\n' +
+      '- Du stellst oder kommentierst IMMER nur EINEN Punkt pro Antwort, niemals mehrere Themen gleichzeitig.\n' +
+      '- Jede deine Antwort (außer der allerersten Eröffnung) endet mit einer Zeile "💡 Feedback:" auf Arabisch — 1 kurzer, konkreter Satz zu einem Grammatik- oder Wortschatzpunkt aus der letzten Antwort des Kandidaten. WICHTIG: Bei der allerersten Eröffnungsnachricht (wenn der Kandidat noch NICHTS gesagt hat) darfst du KEINE Feedback-Zeile hinzufügen.\n' +
+      '- Antworte IMMER auf Deutsch (B2-Niveau, klar und natürlich, wie unter Freunden/Kollegen). Falls der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren.\n' +
+      '- Sei freundlich, kooperativ und ermutigend, aber bring trotzdem echte eigene Standpunkte ein, damit eine echte Diskussion entsteht.'
+    );
+  }
+
+  // يولّد تعليمات إضافية حسب تقدّم النقاش (عدد ردود المستخدم حتى الآن)
+  function t3StageInstruction(turnCount) {
+    if (turnCount === 0) {
+      return 'AKTUELLE PHASE: Eröffnung. Begrüße den Kandidaten kurz, fasse die Aufgabe in 1-2 Sätzen zusammen und mache den ERSTEN eigenen Vorschlag zum Thema, um die Diskussion zu starten. Füge KEINE "💡 Feedback"-Zeile hinzu, da der Kandidat noch nichts gesagt hat.';
+    }
+    if (turnCount >= T3_TARGET_TURNS) {
+      return 'AKTUELLE PHASE: Abschluss. Ihr habt nun genug diskutiert. Fasse die GEMEINSAME EINIGUNG in 1-2 Sätzen zusammen (basierend auf dem bisherigen Gespräch), bedanke dich kurz und erkläre, dass Teil 3 hiermit beendet ist. Stelle KEINE weitere Frage und mache KEINEN neuen Vorschlag mehr. Füge trotzdem "💡 Feedback:" hinzu.';
+    }
+    if (turnCount >= T3_TARGET_TURNS - 2) {
+      return 'AKTUELLE PHASE: Ihr nähert euch dem Ende (Antwort ' + turnCount + ' von ca. ' + T3_TARGET_TURNS + '). Beginne, sanft auf eine gemeinsame Einigung hinzuarbeiten — fasse zusammen, was ihr bisher besprochen habt, und schlage vor, euch auf eine Lösung zu einigen.';
+    }
+    return 'AKTUELLE PHASE: Mitte der Diskussion (Antwort ' + turnCount + ' von ca. ' + T3_TARGET_TURNS + '). Reagiere auf den letzten Punkt des Kandidaten (zustimmen, höflich widersprechen oder nachfragen) und bring den nächsten Schritt der Aufgabe oder einen neuen Aspekt ein.';
+  }
+
+  function t3BuildPrompt() {
+    if (!_t3Topic) _t3Topic = t3PickRandomTopic() || { name: 'Allgemeine Planung', text: '', steps: [], dialog: [] };
+    return t3BuildBasePrompt(_t3Topic) + '\n\n' + t3StageInstruction(_t3TurnCount);
+  }
+
+  // ── يعرض بطاقة المهمة الحقيقية للمستخدم في أعلى المحادثة (Teil 3) ──
+  function t3RenderTopicCard(topic) {
+    var wrap = document.getElementById('ai-topic-card-wrap');
+    if (!wrap) return;
+    if (!topic) { wrap.innerHTML = ''; return; }
+    var stepsHtml = (topic.steps && topic.steps.length)
+      ? '<ol class="ai-topic-card-steps">' + topic.steps.map(function(s) { return '<li>' + escHtml(s) + '</li>'; }).join('') + '</ol>'
+      : '';
+    wrap.innerHTML =
+      '<div class="ai-topic-card">' +
+        '<div class="ai-topic-card-head"><span>📋 المهمة — Aufgabe</span></div>' +
+        '<div class="ai-topic-card-name">' + escHtml(topic.name || '') + '</div>' +
+        (topic.text ? '<p class="ai-topic-card-text">' + escHtml(topic.text) + '</p>' : '') +
+        stepsHtml +
+      '</div>';
+  }
 
   // يرجع system prompt المناسب بحسب الـ Teil المختار وحالة الجلسة
   function getSystemPromptFor(teil) {
     if (teil === 't1') return t1BuildPrompt(_t1Stage);
     if (teil === 't2') return t2BuildPrompt(_t2Stage);
-    return TEIL_PROMPTS[teil];
+    if (teil === 't3') return t3BuildPrompt();
+    return null;
   }
 
   // ينقل حالة Teil 1 للمرحلة التالية بعد كل رد من الطالب
@@ -11795,6 +11880,8 @@ async function afkarMoveGroup(id, direction) {
     _t1Stage = 'greeting';
     _t2Stage = 'greeting';
     _t2Topic = null;
+    _t3Topic = null;
+    _t3TurnCount = 0;
     _sessionEnded = false;
     if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     if (_mediaRecorder && _mediaRecorder.state !== "inactive") { try { _mediaRecorder.stop(); } catch(e){} }
@@ -11823,6 +11910,10 @@ async function afkarMoveGroup(id, direction) {
     if (_aiTeil === 't2') {
       if (!_t2Topic) _t2Topic = t2PickRandomTopic();
       t2RenderTopicCard(_t2Topic);
+    }
+    if (_aiTeil === 't3') {
+      if (!_t3Topic) _t3Topic = t3PickRandomTopic();
+      t3RenderTopicCard(_t3Topic);
     }
     callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
       _aiLoading = false;
@@ -11865,8 +11956,13 @@ async function afkarMoveGroup(id, direction) {
     if (micBtn) micBtn.disabled = true;
     aiSetHint('Frau Müller تفكر...');
 
+    // Teil 3: عدّاد التبادلات يُحدَّث فوراً (قبل بناء البرومبت) لأن الـ stage instruction يعتمد عليه مباشرة
+    if (_aiTeil === 't3') _t3TurnCount++;
+
     var systemPrompt = getSystemPromptFor(_aiTeil);
-    var wasLastStage = (_aiTeil === 't1' && _t1Stage === 'q2') || (_aiTeil === 't2' && _t2Stage === 'vorteilnachteil');
+    var wasLastStage = (_aiTeil === 't1' && _t1Stage === 'q2') ||
+                        (_aiTeil === 't2' && _t2Stage === 'vorteilnachteil') ||
+                        (_aiTeil === 't3' && _t3TurnCount >= T3_TARGET_TURNS);
 
     callAiApi(systemPrompt, _aiHistory, function(reply) {
       _aiLoading = false;
@@ -11876,7 +11972,7 @@ async function afkarMoveGroup(id, direction) {
       if (_aiTeil === 't1') t1AdvanceStage();
       if (_aiTeil === 't2') t2AdvanceStage();
 
-      if (wasLastStage && (_aiTeil === 't1' || _aiTeil === 't2')) {
+      if (wasLastStage && (_aiTeil === 't1' || _aiTeil === 't2' || _aiTeil === 't3')) {
         // كانت هذه آخر مرحلة — أغلق الجلسة وابدأ التقييم الحقيقي
         _sessionEnded = true;
         aiSpeak(reply, function() {
@@ -11915,12 +12011,23 @@ async function afkarMoveGroup(id, direction) {
     'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne Markdown, ohne Erklärung davor oder danach, exakt in diesem Format:\n' +
     '{"score": <Zahl 0-25>, "summary_ar": "<2-3 kurze Sätze auf Arabisch: Gesamteindruck, größte Stärke, größter Verbesserungspunkt>"}';
 
+  var RATING_PROMPT_T3 =
+    'Du bist ein erfahrener TELC B2 Prüfer/Bewerter. Du bekommst das Transkript einer mündlichen Prüfung (Teil 3: Partnerdiskussion / gemeinsame Planung einer Aufgabe mit einem Gesprächspartner). ' +
+    'Bewerte NUR die Antworten des Kandidaten (role: user) nach den offiziellen telc B2 Kriterien für den mündlichen Teil 3:\n' +
+    '- Ausdruck & Wortschatz (Vielfalt, Angemessenheit, Diskussionsvokabular)\n' +
+    '- Grammatik & Korrektheit (Strukturen, Fehlerhäufigkeit)\n' +
+    '- Aussprache & Flüssigkeit (soweit aus dem Text erkennbar: Zusammenhang, Klarheit, natürlicher Gesprächsfluss)\n' +
+    '- Aufgabenerfüllung & Interaktion (eigene Vorschläge einbringen, auf den Partner reagieren, argumentieren, zu einer gemeinsamen Einigung beitragen)\n\n' +
+    'Gib eine GESAMTPUNKTZAHL von 0 bis 25 (ganze Zahl), realistisch wie ein echter Prüfer — nicht großzügig, nicht streng, sondern fair nach B2-Niveau.\n' +
+    'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne Markdown, ohne Erklärung davor oder danach, exakt in diesem Format:\n' +
+    '{"score": <Zahl 0-25>, "summary_ar": "<2-3 kurze Sätze auf Arabisch: Gesamteindruck, größte Stärke, größter Verbesserungspunkt>"}';
+
   function aiFinishSessionAndRate() {
     aiSetHint('⏳ Frau Müller تحضّر تقييمك النهائي...');
     var micCenter = document.getElementById('ai-mic-center');
     if (micCenter) micCenter.style.display = 'none';
 
-    var ratingPrompt = (_aiTeil === 't2') ? RATING_PROMPT_T2 : RATING_PROMPT_T1;
+    var ratingPrompt = (_aiTeil === 't2') ? RATING_PROMPT_T2 : (_aiTeil === 't3') ? RATING_PROMPT_T3 : RATING_PROMPT_T1;
 
     callAiApi(ratingPrompt, _aiHistory, function(reply) {
       var parsed = null;
@@ -12222,6 +12329,10 @@ async function afkarMoveGroup(id, direction) {
       // تأكد من توفر بنك اختبارات Teil 2 الحقيقي (Meinung/Erfahrung/Vorteil/Nachteil)
       if (typeof mdt2FetchFromFirebase === 'function') {
         mdt2FetchFromFirebase().catch(function() {});
+      }
+      // تأكد من توفر بنك اختبارات Teil 3 الحقيقي (Aufgabe/Schritte/Dialog)
+      if (typeof mdt3FetchFromFirebase === 'function') {
+        mdt3FetchFromFirebase().catch(function() {});
       }
     }
   };
