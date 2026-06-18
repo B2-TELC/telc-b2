@@ -11885,6 +11885,7 @@ async function afkarMoveGroup(id, direction) {
     _sessionEnded = false;
     if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     if (_mediaRecorder && _mediaRecorder.state !== "inactive") { try { _mediaRecorder.stop(); } catch(e){} }
+    aiStopSilenceDetection();
     _isRecording = false;
     var msgs = document.getElementById('ai-messages');
     if (msgs) msgs.innerHTML = '';
@@ -11990,6 +11991,8 @@ async function afkarMoveGroup(id, direction) {
     }, function() {
       _aiLoading = false;
       if (micBtn) micBtn.disabled = false;
+      // فشل الطلب — تراجع عن زيادة عدّاد Teil 3 لأن لا رد فعلي تم استلامه
+      if (_aiTeil === 't3') _t3TurnCount--;
       aiSetHint('❌ خطأ — حاول مرة أخرى');
     });
   }
@@ -12047,14 +12050,34 @@ async function afkarMoveGroup(id, direction) {
         aiUpdateScores();
         aiShowFinalReport(parsed.score, parsed.summary_ar || '');
       } else {
-        _aiRating = '—';
-        aiUpdateScores();
-        aiSetHint('انتهت الجلسة ✅ (تعذّر إصدار تقييم تفصيلي)');
+        aiShowRatingErrorFallback();
       }
     }, function() {
-      aiSetHint('انتهت الجلسة ✅ (حدث خطأ أثناء التقييم)');
+      aiShowRatingErrorFallback();
     }, true);
   }
+
+  // ── عند فشل طلب التقييم نفسه — لا تترك المستخدم في طريق مسدود ──
+  function aiShowRatingErrorFallback() {
+    var msgs = document.getElementById('ai-messages');
+    if (!msgs) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'ai-final-report';
+    wrap.innerHTML =
+      '<div class="ai-final-label">⚠️ انتهت الجلسة، لكن تعذّر إصدار التقييم بسبب خطأ في الاتصال</div>' +
+      '<button class="ai-reset-btn" onclick="aiRetryRating()" style="margin-top:.6rem;">&#8634; أعد المحاولة</button>' +
+      '<button class="ai-reset-btn" onclick="aiReset()" style="margin-top:.5rem;">جلسة جديدة</button>';
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+    aiSetHint('⚠️ تعذّر التقييم — يمكنك إعادة المحاولة أعلاه');
+  }
+
+  // ── إعادة محاولة طلب التقييم فقط (بدون إعادة الجلسة من الصفر) ──
+  window.aiRetryRating = function() {
+    var lastReport = document.querySelector('#ai-messages .ai-final-report:last-child');
+    if (lastReport) lastReport.remove();
+    aiFinishSessionAndRate();
+  };
 
   // ── Show final report bubble ─────────────────────────────────────
   function aiShowFinalReport(score, summaryAr) {
@@ -12075,7 +12098,7 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Mic toggle ─────────────────────────────────────────────────
   window.aiToggleMic = function() {
-    if (_aiLoading) return;
+    if (_aiLoading || _sessionEnded) return;
     if (_isRecording) {
       aiStopRecording();
     } else {
@@ -12085,6 +12108,16 @@ async function afkarMoveGroup(id, direction) {
 
   var _mediaRecorder = null;
   var _audioChunks = [];
+  // ── كشف الصمت التلقائي ──
+  var _silenceAudioCtx = null;
+  var _silenceAnalyser = null;
+  var _silenceCheckInterval = null;
+  var _silenceStartedAt = null;     // أول لحظة بدأ فيها صمت متواصل
+  var _recordingStartedAt = null;   // لحظة بدء التسجيل (لتجاهل الصمت الأولي قبل أن يتكلم المستخدم)
+  var SILENCE_THRESHOLD = 0.012;    // مستوى صوت أقل من هذا يُعتبر صمتاً (RMS تقريبي)
+  var SILENCE_DURATION_MS = 1500;   // مدة الصمت المتواصل اللازمة لإيقاف التسجيل تلقائياً
+  var MIN_SPEECH_BEFORE_AUTOSTOP_MS = 600; // أقل مدة كلام قبل قبول إيقاف تلقائي (يمنع توقفاً فورياً خاطئاً)
+  var _hasDetectedSpeech = false;   // أصبح true بعد أول مرة يتعدى الصوت العتبة
 
   function aiStartRecording() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -12108,6 +12141,7 @@ async function afkarMoveGroup(id, direction) {
 
         _mediaRecorder.onstop = function() {
           stream.getTracks().forEach(function(t) { t.stop(); });
+          aiStopSilenceDetection();
           if (_audioChunks.length === 0) {
             aiSetHint('❌ لم يُسمع كلام — حاول مرة أخرى');
             return;
@@ -12119,12 +12153,69 @@ async function afkarMoveGroup(id, direction) {
 
         _mediaRecorder.start();
         _isRecording = true;
+        _hasDetectedSpeech = false;
+        _silenceStartedAt = null;
+        _recordingStartedAt = Date.now();
         aiSetMicState('recording');
-        aiSetHint('🔴 جارٍ الاستماع... تكلم ثم اضغط للإيقاف');
+        aiSetHint('🔴 جارٍ الاستماع... تكلم، سيتوقف تلقائياً عند الصمت');
+        aiStartSilenceDetection(stream);
       })
       .catch(function() {
         aiSetHint('❌ يجب السماح للموقع باستخدام المايك');
       });
+  }
+
+  // ── يبدأ تحليل مستوى الصوت لاكتشاف الصمت المتواصل وإيقاف التسجيل تلقائياً ──
+  function aiStartSilenceDetection(stream) {
+    try {
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return; // المتصفح لا يدعم — التسجيل يبقى يدوياً فقط، بدون كسر أي شيء
+      _silenceAudioCtx = new AudioCtx();
+      var source = _silenceAudioCtx.createMediaStreamSource(stream);
+      _silenceAnalyser = _silenceAudioCtx.createAnalyser();
+      _silenceAnalyser.fftSize = 512;
+      source.connect(_silenceAnalyser);
+      var buffer = new Uint8Array(_silenceAnalyser.fftSize);
+
+      _silenceCheckInterval = setInterval(function() {
+        if (!_isRecording || !_silenceAnalyser) return;
+        _silenceAnalyser.getByteTimeDomainData(buffer);
+        // حساب RMS تقريبي لمستوى الصوت (0 = صمت تام، أكبر = صوت أعلى)
+        var sumSquares = 0;
+        for (var i = 0; i < buffer.length; i++) {
+          var norm = (buffer[i] - 128) / 128;
+          sumSquares += norm * norm;
+        }
+        var rms = Math.sqrt(sumSquares / buffer.length);
+        var now = Date.now();
+
+        if (rms > SILENCE_THRESHOLD) {
+          // المستخدم يتكلم الآن — صفّر مؤقت الصمت
+          _hasDetectedSpeech = true;
+          _silenceStartedAt = null;
+        } else {
+          // صمت حالي — ابدأ أو استمر بعدّ مدة الصمت
+          if (_silenceStartedAt === null) _silenceStartedAt = now;
+          var silenceDuration = now - _silenceStartedAt;
+          var speechDuration = now - _recordingStartedAt;
+          if (_hasDetectedSpeech && speechDuration > MIN_SPEECH_BEFORE_AUTOSTOP_MS && silenceDuration >= SILENCE_DURATION_MS) {
+            // صمت كافٍ بعد أن تكلم المستخدم فعلاً — أوقف التسجيل تلقائياً
+            aiStopRecording();
+          }
+        }
+      }, 150);
+    } catch (e) {
+      // فشل إعداد كشف الصمت لا يجب أن يعطّل التسجيل اليدوي العادي
+      _silenceAnalyser = null;
+    }
+  }
+
+  // ── ينظّف موارد كشف الصمت (يُستدعى عند إيقاف التسجيل بأي طريقة) ──
+  function aiStopSilenceDetection() {
+    if (_silenceCheckInterval) { clearInterval(_silenceCheckInterval); _silenceCheckInterval = null; }
+    if (_silenceAudioCtx) { try { _silenceAudioCtx.close(); } catch(e) {} _silenceAudioCtx = null; }
+    _silenceAnalyser = null;
+    _silenceStartedAt = null;
   }
 
   function aiStopRecording() {
