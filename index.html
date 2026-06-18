@@ -154,7 +154,6 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 .ai-topic-card-head span{font-size:.72rem;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;}
 .ai-topic-card-name{font-size:.95rem;font-weight:700;color:var(--ink);padding:.7rem .9rem .2rem;font-family:'Playfair Display',serif;}
 .ai-topic-card-text{font-size:.82rem;line-height:1.75;color:var(--ink);font-style:italic;font-family:'Playfair Display',serif;padding:.3rem .9rem .8rem;margin:0;}
-.ai-topic-card-inhalt{font-size:.83rem;line-height:1.7;color:var(--ink);direction:ltr;text-align:left;padding:.2rem .9rem .85rem;margin:0;}
 @media(max-width:640px){.ai-msg-bubble{max-width:90%;font-size:.84rem;}.ai-chat-wrap{padding:.7rem .6rem 2rem;}#page-ai-chat .cat-header{padding:.9rem .85rem .7rem;}#page-ai-chat .cat-kicker{margin-bottom:.4rem;}#page-ai-chat .cat-title{font-size:1.4rem !important;margin-bottom:.3rem;}#page-ai-chat .cat-lead{font-size:.8rem;}#page-ai-chat .back-btn{margin-bottom:.7rem;}#page-ai-chat .ai-info-box{display:none;}#page-ai-chat .ai-teil-selector{margin-bottom:.7rem;gap:.4rem;flex-wrap:nowrap;}#page-ai-chat .ai-teil-btn{padding:.5rem .5rem;font-size:.74rem;flex:1;text-align:center;}#page-ai-chat .ai-teil-full{display:none;}#page-ai-chat .ai-teil-short{display:inline;}#page-ai-chat .ai-start-screen{padding:.6rem .5rem;gap:.7rem;}#page-ai-chat .ai-start-avatar{width:60px;height:60px;font-size:1.15rem;}#page-ai-chat .ai-start-name{font-size:1.05rem;}#page-ai-chat .ai-start-desc{font-size:.8rem;max-width:260px;}#page-ai-chat .ai-start-btn{padding:.75rem 1.8rem;font-size:.9rem;}}
 .ai-start-screen{display:flex;flex-direction:column;align-items:center;gap:1rem;padding:2rem 1rem;text-align:center;}
 .ai-start-avatar{width:72px;height:72px;border-radius:50%;background:var(--accent);color:white;font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(200,96,42,.3);}
@@ -11636,7 +11635,7 @@ async function afkarMoveGroup(id, direction) {
   }
 
   // ── حالة الجلسة (State Machine) — Teil 2 ────────────────────────
-  // المراحل: greeting → meinung → erfahrung → vorteilnachteil → closing → done
+  // المراحل: greeting → inhalt → meinung → erfahrung → vorteilnachteil → closing → done
   var _t2Stage = 'greeting';
   var _t2Topic = null; // الموضوع الحقيقي المختار من بنك اختبارات Teil 2
 
@@ -11672,23 +11671,26 @@ async function afkarMoveGroup(id, direction) {
     } else {
       vnInstruction = 'bitte den Kandidaten, einen Nachteil zu diesem Thema zu nennen und zu begründen';
     }
+    var hasInhalt = topic && topic.inhalt;
     return (
       'Du bist Frau Müller, eine erfahrene TELC B2 Deutsch Prüferin. ' +
       'Der Kandidat übt Teil 2 der mündlichen Prüfung: ein kurzes Gespräch über ein Alltagsthema, das auf einem echten telc-B2-Thema basiert.\n\n' +
-      'DAS THEMA (für dich als Kontext — der Kandidat sieht es bereits auf dem Bildschirm):\n' +
+      'DAS THEMA (für dich als Kontext — der Kandidat sieht nur den Titel und den kurzen Zitat-Text auf dem Bildschirm, NICHT den folgenden "Inhalt"):\n' +
       'Titel: ' + (topic.name || '—') + '\n' +
-      (topic.text ? ('Text/Zitat: ' + topic.text + '\n') : '') +
-      (topic.inhalt ? ('Inhalt: ' + topic.inhalt + '\n') : '') +
+      (topic.text ? ('Text/Zitat (sichtbar für den Kandidaten): ' + topic.text + '\n') : '') +
+      (topic.inhalt ? ('Inhalt (NUR für dich — nicht sichtbar für den Kandidaten, dient als Referenz/Musterlösung für FRAGE 1): ' + topic.inhalt + '\n') : '') +
       '\nABLAUF (du MUSST diesen exakt befolgen, unabhängig davon wie lang das Gespräch wird):\n' +
-      '1. Begrüßung: kurz, freundlich, auf Deutsch. Fasse das Thema in 1 Satz zusammen und stelle die ERSTE Frage: nach der MEINUNG (Meinung) des Kandidaten zu diesem Thema. Du kannst dich an folgendem Aspekt orientieren: "' + (topic.meinung || '') + '"\n' +
-      '2. Nach der Meinungsantwort: stelle GENAU EINE Frage nach einer persönlichen ERFAHRUNG (Erfahrung) des Kandidaten zu diesem Thema. Du kannst dich an folgendem Aspekt orientieren: "' + (topic.erfahrung || '') + '"\n' +
-      '3. Nach der Erfahrungsantwort: ' + vnInstruction + '. Du kannst dich an folgendem orientieren — Vorteil: "' + (topic.vorteil || '—') + '" / Nachteil: "' + (topic.nachteil || '—') + '"\n' +
-      '4. Abschluss: Nach dieser dritten Antwort, bedanke dich kurz, erkläre dass Teil 2 beendet ist, und beende den Teil — KEINE weiteren Fragen mehr.\n\n' +
+      '1. Begrüßung: kurz, freundlich, auf Deutsch. Stelle dich kurz vor und stelle dann die ERSTE Frage: bitte den Kandidaten, den Inhalt des Textes mit eigenen Worten kurz zusammenzufassen bzw. wiederzugeben (NICHT seine Meinung — nur den Inhalt).\n' +
+      (hasInhalt ? ('   Nutze den oben angegebenen "Inhalt" NUR als deine eigene Referenz, um später zu beurteilen, ob die Zusammenfassung des Kandidaten richtig und vollständig ist — verrate ihm den Inhalt nicht direkt.\n') : '') +
+      '2. Nach der Zusammenfassung: stelle GENAU EINE Frage nach der MEINUNG (Meinung) des Kandidaten zu diesem Thema. Du kannst dich an folgendem Aspekt orientieren: "' + (topic.meinung || '') + '"\n' +
+      '3. Nach der Meinungsantwort: stelle GENAU EINE Frage nach einer persönlichen ERFAHRUNG (Erfahrung) des Kandidaten zu diesem Thema. Du kannst dich an folgendem Aspekt orientieren: "' + (topic.erfahrung || '') + '"\n' +
+      '4. Nach der Erfahrungsantwort: ' + vnInstruction + '. Du kannst dich an folgendem orientieren — Vorteil: "' + (topic.vorteil || '—') + '" / Nachteil: "' + (topic.nachteil || '—') + '"\n' +
+      '5. Abschluss: Nach dieser vierten Antwort, bedanke dich kurz, erkläre dass Teil 2 beendet ist, und beende den Teil — KEINE weiteren Fragen mehr.\n\n' +
       'REGELN:\n' +
       '- Du stellst IMMER nur eine Frage pro Antwort, niemals mehr.\n' +
-      '- Du gehst NIE über die 3 Fragen hinaus (Meinung, Erfahrung, Vorteil/Nachteil), auch wenn der Kandidat kurz antwortet.\n' +
+      '- Du gehst NIE über die 4 Fragen hinaus (Inhalt, Meinung, Erfahrung, Vorteil/Nachteil), auch wenn der Kandidat kurz antwortet.\n' +
       '- Jede deine Antwort (außer der Begrüßung) endet mit einer Zeile "💡 Feedback:" auf Arabisch — 1 kurzer, konkreter Satz zu einem Grammatik- oder Wortschatzpunkt aus der letzten Antwort des Kandidaten.\n' +
-      '- Antworte IMMER auf Deutsch (B2-Niveau, klar und natürlich). Falls der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren — das zählt nicht als eine der 3 Fragen.\n' +
+      '- Antworte IMMER auf Deutsch (B2-Niveau, klar und natürlich). Falls der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren — das zählt nicht als eine der 4 Fragen.\n' +
       '- Sei unterstützend und ermutigend, wie eine echte, freundliche Prüferin.'
     );
   }
@@ -11697,13 +11699,15 @@ async function afkarMoveGroup(id, direction) {
   function t2StageInstruction(stage) {
     switch (stage) {
       case 'greeting':
-        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten, fasse das Thema kurz zusammen und stelle FRAGE 1 (Meinung). Stelle noch KEINE andere Frage.';
+        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten kurz und stelle FRAGE 1: bitte ihn, den Inhalt des Textes mit eigenen Worten zusammenzufassen. Stelle noch KEINE andere Frage (noch keine Meinungsfrage).';
+      case 'inhalt':
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben den INHALT zusammengefasst. Stelle jetzt FRAGE 2 (die Meinungsfrage).';
       case 'meinung':
-        return 'AKTUELLE PHASE: Der Kandidat hat soeben seine MEINUNG geäußert. Stelle jetzt FRAGE 2 (die Erfahrungsfrage).';
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben seine MEINUNG geäußert. Stelle jetzt FRAGE 3 (die Erfahrungsfrage).';
       case 'erfahrung':
-        return 'AKTUELLE PHASE: Der Kandidat hat soeben von seiner ERFAHRUNG erzählt. Stelle jetzt FRAGE 3 (Vorteil ODER Nachteil — wähle genau einen Aspekt).';
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben von seiner ERFAHRUNG erzählt. Stelle jetzt FRAGE 4 (Vorteil ODER Nachteil — wähle genau einen Aspekt).';
       case 'vorteilnachteil':
-        return 'AKTUELLE PHASE: Der Kandidat hat soeben FRAGE 3 beantwortet — das war die letzte Frage. Bedanke dich kurz, sage dass Teil 2 hiermit beendet ist, und stelle KEINE weitere Frage. Füge trotzdem "💡 Feedback:" hinzu.';
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben FRAGE 4 beantwortet — das war die letzte Frage. Bedanke dich kurz, sage dass Teil 2 hiermit beendet ist, und stelle KEINE weitere Frage. Füge trotzdem "💡 Feedback:" hinzu.';
       default:
         return 'AKTUELLE PHASE: Die Sitzung ist beendet. Antworte nur kurz und höflich, ohne neue Fragen.';
     }
@@ -11716,7 +11720,8 @@ async function afkarMoveGroup(id, direction) {
 
   // ينقل حالة Teil 2 للمرحلة التالية بعد كل رد من الطالب
   function t2AdvanceStage() {
-    if (_t2Stage === 'greeting') { _t2Stage = 'meinung'; }
+    if (_t2Stage === 'greeting') { _t2Stage = 'inhalt'; }
+    else if (_t2Stage === 'inhalt') { _t2Stage = 'meinung'; }
     else if (_t2Stage === 'meinung') { _t2Stage = 'erfahrung'; }
     else if (_t2Stage === 'erfahrung') { _t2Stage = 'vorteilnachteil'; }
     else if (_t2Stage === 'vorteilnachteil') { _t2Stage = 'done'; }
@@ -11732,7 +11737,6 @@ async function afkarMoveGroup(id, direction) {
         '<div class="ai-topic-card-head"><span>📋 الموضوع — Thema</span></div>' +
         '<div class="ai-topic-card-name">' + escHtml(topic.name || '') + '</div>' +
         (topic.text ? '<p class="ai-topic-card-text">' + escHtml(topic.text) + '</p>' : '') +
-        (topic.inhalt ? '<p class="ai-topic-card-inhalt">' + escHtml(topic.inhalt) + '</p>' : '') +
       '</div>';
   }
 
@@ -11899,12 +11903,12 @@ async function afkarMoveGroup(id, direction) {
     '{"score": <Zahl 0-25>, "summary_ar": "<2-3 kurze Sätze auf Arabisch: Gesamteindruck, größte Stärke, größter Verbesserungspunkt>"}';
 
   var RATING_PROMPT_T2 =
-    'Du bist ein erfahrener TELC B2 Prüfer/Bewerter. Du bekommst das Transkript einer mündlichen Prüfung (Teil 2: Gespräch — Meinung, Erfahrung, Vorteil/Nachteil zu einem Alltagsthema). ' +
+    'Du bist ein erfahrener TELC B2 Prüfer/Bewerter. Du bekommst das Transkript einer mündlichen Prüfung (Teil 2: Gespräch — Inhaltszusammenfassung, Meinung, Erfahrung, Vorteil/Nachteil zu einem Alltagsthema). ' +
     'Bewerte NUR die Antworten des Kandidaten (role: user) nach den offiziellen telc B2 Kriterien für den mündlichen Teil 2:\n' +
     '- Ausdruck & Wortschatz (Vielfalt, Angemessenheit)\n' +
     '- Grammatik & Korrektheit (Strukturen, Fehlerhäufigkeit)\n' +
     '- Aussprache & Flüssigkeit (soweit aus dem Text erkennbar: Zusammenhang, Klarheit)\n' +
-    '- Aufgabenerfüllung (Inhalt, Themenbezug, Vollständigkeit der Antworten zu Meinung, Erfahrung und Vorteil/Nachteil)\n\n' +
+    '- Aufgabenerfüllung (Inhalt, Themenbezug, Vollständigkeit der Antworten zu Inhaltszusammenfassung, Meinung, Erfahrung und Vorteil/Nachteil)\n\n' +
     'Gib eine GESAMTPUNKTZAHL von 0 bis 25 (ganze Zahl), realistisch wie ein echter Prüfer — nicht großzügig, nicht streng, sondern fair nach B2-Niveau.\n' +
     'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne Markdown, ohne Erklärung davor oder danach, exakt in diesem Format:\n' +
     '{"score": <Zahl 0-25>, "summary_ar": "<2-3 kurze Sätze auf Arabisch: Gesamteindruck, größte Stärke, größter Verbesserungspunkt>"}';
