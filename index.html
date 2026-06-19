@@ -11591,6 +11591,7 @@ async function afkarMoveGroup(id, direction) {
   var _aiMuted = false;
   var _audioUnlocked = false;
   var _currentAudio = null;
+  var _speakSeq = 0;
   var _isRecording = false;
   var _sessionStarted = false;
   var _sessionEnded = false;
@@ -11881,12 +11882,7 @@ async function afkarMoveGroup(id, direction) {
   window.aiReset = function() {
     // أوقف أي صوت جارٍ وألغِ كل callbacks معلّقة
     _speakCallbackId++;
-    if (_currentAudio) {
-      _currentAudio.onended = null;
-      _currentAudio.onerror = null;
-      _currentAudio.pause();
-      _currentAudio = null;
-    }
+    aiStopSpeaking(); // أوقف الصوت الحالي وألغِ أي طلب TTS لم يكتمل بعد
     // أوقف التسجيل إن كان جارياً مع منع إرسال blob قديم
     if (_mediaRecorder && _mediaRecorder.state !== "inactive") {
       try { _mediaRecorder.onstop = null; _mediaRecorder.stop(); } catch(e) {}
@@ -11938,7 +11934,18 @@ async function afkarMoveGroup(id, direction) {
       if (!_t3Topic) _t3Topic = t3PickRandomTopic();
       t3RenderTopicCard(_t3Topic);
     }
-    callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
+    var systemPrompt = getSystemPromptFor(_aiTeil);
+    if (!systemPrompt) {
+      _aiLoading = false;
+      aiSetHint('❌ خطأ في إعداد الجلسة — أعد تحميل الصفحة');
+      return;
+    }
+    if (!window.__getToken || !window.__getToken()) {
+      _aiLoading = false;
+      aiSetHint('❌ انتهت الجلسة — أعد إدخال الكود');
+      return;
+    }
+    callAiApi(systemPrompt, [], function(reply) {
       _aiLoading = false;
       // الرسالة الأولى (ترحيب) لا يوجد فيها رد للمستخدم لتقييمه — احذف أي "💡 Feedback" قد يضيفه الموديل خطأً
       reply = reply.replace(/\n*💡\s*Feedback:[^\n]*/gi, '').trim();
@@ -11951,7 +11958,7 @@ async function afkarMoveGroup(id, direction) {
       aiSpeakThenEnableMic(reply);
     }, function() {
       _aiLoading = false;
-      aiSetHint('❌ خطأ — أعد تحميل الصفحة');
+      aiSetHint('❌ فشل الاتصال بـ AI — تحقق من الإنترنت وأعد المحاولة');
     });
   }
 
@@ -12139,13 +12146,8 @@ async function afkarMoveGroup(id, direction) {
       aiStopRecording();
     } else {
       // أوقف صوت الـ AI فوراً قبل فتح المايك لمنع التقاط صوته
-      if (_currentAudio) {
-        _speakCallbackId++; // ألغِ أي callback معلّق (مثل تفعيل المايك بعد انتهاء الصوت)
-        _currentAudio.onended = null;
-        _currentAudio.onerror = null;
-        _currentAudio.pause();
-        _currentAudio = null;
-      }
+      _speakCallbackId++; // ألغِ أي callback معلّق (مثل تفعيل المايك بعد انتهاء الصوت)
+      aiStopSpeaking(); // أوقف الصوت الحالي وألغِ أي طلب TTS لم يكتمل بعد
       var micBtn = document.getElementById('ai-mic-btn');
       if (micBtn) micBtn.disabled = false; // تأكد أن الزر مفعّل قبل التسجيل
       aiStartRecording();
@@ -12254,9 +12256,20 @@ async function afkarMoveGroup(id, direction) {
     } catch(e) {}
   }
 
+  function aiStopSpeaking() {
+    _speakSeq++; // أي طلب/تشغيل سابق يصبح قديمًا ويتم تجاهله عند وصوله
+    if (_currentAudio) {
+      _currentAudio.onended = null;
+      _currentAudio.onerror = null;
+      _currentAudio.pause();
+      _currentAudio = null;
+    }
+  }
+
   function aiSpeak(text, onEnd) {
+    aiStopSpeaking(); // يوقف أي صوت قيد التشغيل ويُلغي أي طلب TTS سابق لم يكتمل بعد
+    var mySeq = _speakSeq;
     if (_aiMuted) { if (onEnd) onEnd(); return; }
-    if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
     var cleanText = text.replace(/💡\s*Feedback:[^\n]*/gi, '').trim();
     if (!cleanText) { if (onEnd) onEnd(); return; }
 
@@ -12270,35 +12283,37 @@ async function afkarMoveGroup(id, direction) {
     .then(function(r) {
       if (!r.ok) {
         return r.text().then(function(t) {
-          aiSetHint('❌ TTS خطأ ' + r.status + ': ' + t.substring(0, 80));
+          if (mySeq === _speakSeq) aiSetHint('❌ TTS خطأ ' + r.status + ': ' + t.substring(0, 80));
           throw new Error('TTS ' + r.status);
         });
       }
       return r.json();
     })
     .then(function(d) {
+      if (mySeq !== _speakSeq) { return; } // طلب قديم تم تجاوزه بنقرة أحدث — يُتجاهل تمامًا
       if (!d.audio) { aiSetHint('❌ لا يوجد صوت في الرد'); if (onEnd) onEnd(); return; }
       // تشغيل base64 مباشرة
       var src = 'data:audio/mpeg;base64,' + d.audio;
-      _currentAudio = new Audio(src);
-      _currentAudio.onended = function() {
-        _currentAudio = null;
-        aiSetHint('اضغط للإجابة بالألمانية 🎤');
+      var audio = new Audio(src);
+      _currentAudio = audio;
+      audio.onended = function() {
+        if (mySeq === _speakSeq) { _currentAudio = null; aiSetHint('اضغط للإجابة بالألمانية 🎤'); }
         if (onEnd) onEnd();
       };
-      _currentAudio.onerror = function(e) {
-        aiSetHint('❌ خطأ تشغيل الصوت');
-        _currentAudio = null;
+      audio.onerror = function(e) {
+        if (mySeq === _speakSeq) { aiSetHint('❌ خطأ تشغيل الصوت'); _currentAudio = null; }
         if (onEnd) onEnd();
       };
-      _currentAudio.play().then(function() {
-        aiSetHint('🔊 Frau Müller تتكلم...');
+      audio.play().then(function() {
+        if (mySeq === _speakSeq) aiSetHint('🔊 Frau Müller تتكلم...');
+        else { audio.pause(); } // نقرة أحدث وصلت أثناء التحميل — أوقف هذا الصوت فورًا
       }).catch(function(e) {
-        aiSetHint('❌ play() رفض: ' + e.message);
+        if (mySeq === _speakSeq) aiSetHint('❌ play() رفض: ' + e.message);
         if (onEnd) onEnd();
       });
     })
     .catch(function(e) {
+      if (mySeq !== _speakSeq) return;
       aiSetHint('❌ fetch خطأ: ' + e.message);
       if (onEnd) onEnd();
     });
@@ -12314,7 +12329,7 @@ async function afkarMoveGroup(id, direction) {
       if (icon) icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
       if (label) label.textContent = 'مكتوم';
       if (btn) btn.style.color = 'var(--accent)';
-      if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+      if (_currentAudio) { aiStopSpeaking(); }
     } else {
       if (icon) icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>';
       if (label) label.textContent = 'صوت';
@@ -12331,9 +12346,28 @@ async function afkarMoveGroup(id, direction) {
       headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
       body: JSON.stringify({ system: systemPrompt, messages: sentHistory })
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) { if (d && d.reply) onSuccess(d.reply); else onError(); })
-    .catch(onError);
+    .then(function(r) {
+      if (!r.ok) {
+        return r.text().then(function(t) {
+          aiSetHint('❌ Worker error ' + r.status + (t ? ': ' + t.substring(0, 60) : ''));
+          throw new Error('http_' + r.status);
+        });
+      }
+      return r.json();
+    })
+    .then(function(d) {
+      if (d && typeof d.reply === 'string' && d.reply.trim() && !d.error) {
+        onSuccess(d.reply);
+      } else {
+        aiSetHint('❌ ' + (d && d.error ? d.error : 'رد فارغ من AI') + ' — حاول مرة أخرى');
+        onError();
+      }
+    })
+    .catch(function(e) {
+      if (e && e.message && e.message.startsWith('http_')) return; // already handled
+      aiSetHint('❌ ' + (e && e.message ? e.message : 'network error') + ' — تحقق من الإنترنت');
+      onError();
+    });
   }
 
   // ── Rating ─────────────────────────────────────────────────────
