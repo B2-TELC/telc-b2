@@ -11594,6 +11594,7 @@ async function afkarMoveGroup(id, direction) {
   var _isRecording = false;
   var _sessionStarted = false;
   var _sessionEnded = false;
+  var _speakCallbackId = 0; // يُستخدم لإلغاء callback القديم عند قطع الصوت
 
   // ── حالة الجلسة (State Machine) — Teil 1 ────────────────────────
   // المراحل: greeting → presentation → q1 → q2 → closing → done
@@ -11878,26 +11879,42 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Reset ──────────────────────────────────────────────────────
   window.aiReset = function() {
+    // أوقف أي صوت جارٍ وألغِ كل callbacks معلّقة
+    _speakCallbackId++;
+    if (_currentAudio) {
+      _currentAudio.onended = null;
+      _currentAudio.onerror = null;
+      _currentAudio.pause();
+      _currentAudio = null;
+    }
+    // أوقف التسجيل إن كان جارياً مع منع إرسال blob قديم
+    if (_mediaRecorder && _mediaRecorder.state !== "inactive") {
+      try { _mediaRecorder.onstop = null; _mediaRecorder.stop(); } catch(e) {}
+    }
+    _isRecording = false;
+    _aiLoading = false;
+    // أعد ضبط حالة الجلسة
     _aiHistory = [];
     _aiTurns = 0;
     _aiTotalWords = 0;
     _aiRating = '—';
     _sessionStarted = false;
+    _sessionEnded = false;
     _t1Stage = 'greeting';
     _t2Stage = 'greeting';
     _t2Topic = null;
     _t3Topic = null;
     _t3TurnCount = 0;
-    _sessionEnded = false;
-    if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
-    if (_mediaRecorder && _mediaRecorder.state !== "inactive") { try { _mediaRecorder.stop(); } catch(e){} }
-    _isRecording = false;
+    // امسح واجهة المحادثة
     var msgs = document.getElementById('ai-messages');
     if (msgs) msgs.innerHTML = '';
     var topicWrap = document.getElementById('ai-topic-card-wrap');
     if (topicWrap) topicWrap.innerHTML = '';
     var bar = document.getElementById('ai-score-bar');
     if (bar) bar.style.display = 'none';
+    // أعد تفعيل زر المايك (قد يكون معطّلاً من جلسة سابقة)
+    var micBtn = document.getElementById('ai-mic-btn');
+    if (micBtn) micBtn.disabled = false;
     aiUpdateScores();
     aiSetMicState('idle');
     // أعد إظهار شاشة البداية
@@ -11943,8 +11960,10 @@ async function afkarMoveGroup(id, direction) {
     aiSetHint('🔊 Frau Müller تتكلم...');
     var micBtn = document.getElementById('ai-mic-btn');
     if (micBtn) micBtn.disabled = true;
+    var myCallbackId = ++_speakCallbackId;
     aiSpeak(text, function() {
-      // بعد انتهاء الكلام — فعّل المايك
+      // تحقق أن هذا الـ callback لم يُلغَ بسبب قطع المستخدم للصوت
+      if (myCallbackId !== _speakCallbackId) return;
       if (micBtn) micBtn.disabled = false;
       aiSetHint('اضغط للإجابة بالألمانية 🎤');
     });
@@ -12119,6 +12138,16 @@ async function afkarMoveGroup(id, direction) {
     if (_isRecording) {
       aiStopRecording();
     } else {
+      // أوقف صوت الـ AI فوراً قبل فتح المايك لمنع التقاط صوته
+      if (_currentAudio) {
+        _speakCallbackId++; // ألغِ أي callback معلّق (مثل تفعيل المايك بعد انتهاء الصوت)
+        _currentAudio.onended = null;
+        _currentAudio.onerror = null;
+        _currentAudio.pause();
+        _currentAudio = null;
+      }
+      var micBtn = document.getElementById('ai-mic-btn');
+      if (micBtn) micBtn.disabled = false; // تأكد أن الزر مفعّل قبل التسجيل
       aiStartRecording();
     }
   };
