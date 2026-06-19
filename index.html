@@ -11934,7 +11934,18 @@ async function afkarMoveGroup(id, direction) {
       if (!_t3Topic) _t3Topic = t3PickRandomTopic();
       t3RenderTopicCard(_t3Topic);
     }
-    callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
+    var systemPrompt = getSystemPromptFor(_aiTeil);
+    if (!systemPrompt) {
+      _aiLoading = false;
+      aiSetHint('❌ خطأ في إعداد الجلسة — أعد تحميل الصفحة');
+      return;
+    }
+    if (!window.__getToken || !window.__getToken()) {
+      _aiLoading = false;
+      aiSetHint('❌ انتهت الجلسة — أعد إدخال الكود');
+      return;
+    }
+    callAiApi(systemPrompt, [], function(reply) {
       _aiLoading = false;
       // الرسالة الأولى (ترحيب) لا يوجد فيها رد للمستخدم لتقييمه — احذف أي "💡 Feedback" قد يضيفه الموديل خطأً
       reply = reply.replace(/\n*💡\s*Feedback:[^\n]*/gi, '').trim();
@@ -11947,7 +11958,7 @@ async function afkarMoveGroup(id, direction) {
       aiSpeakThenEnableMic(reply);
     }, function() {
       _aiLoading = false;
-      aiSetHint('❌ خطأ — أعد تحميل الصفحة');
+      aiSetHint('❌ فشل الاتصال بـ AI — تحقق من الإنترنت وأعد المحاولة');
     });
   }
 
@@ -12336,7 +12347,7 @@ async function afkarMoveGroup(id, direction) {
       body: JSON.stringify({ system: systemPrompt, messages: sentHistory })
     })
     .then(function(r) { return r.json(); })
-    .then(function(d) { if (d && d.reply) onSuccess(d.reply); else onError(); })
+    .then(function(d) { if (d && typeof d.reply === 'string' && d.reply.trim() && !d.error) onSuccess(d.reply); else onError(); })
     .catch(onError);
   }
 
