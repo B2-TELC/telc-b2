@@ -11628,7 +11628,7 @@ async function afkarMoveGroup(id, direction) {
   function t1StageInstruction(stage) {
     switch (stage) {
       case 'greeting':
-        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten und fordere ihn auf, sein Thema zu präsentieren. Stelle noch KEINE inhaltliche Frage. WICHTIG: Der Kandidat hat noch NICHTS gesagt — füge KEINE "💡 Feedback:"-Zeile hinzu, da es noch keine Antwort zu bewerten gibt.';
+        return 'AKTUELLE PHASE: Begrüßung. Sage GENAU diesen Text und nichts anderes: "Hallo und herzlich willkommen! Heute werden Sie ein Thema präsentieren, das Sie interessiert. Sie können zum Beispiel über ein Buch, einen Film, eine Reise, wichtige Person sprechen.\nMeine erste Frage an Sie: Welches Thema möchten Sie präsentieren und warum?" — Füge KEINE "💡 Feedback:"-Zeile hinzu.';
       case 'presentation':
         return 'AKTUELLE PHASE: Der Kandidat hat gerade sein Thema präsentiert. Stelle jetzt FRAGE 1 (die erste von genau 2 Fragen) zu einem Aspekt der Präsentation.';
       case 'q1':
@@ -12291,7 +12291,7 @@ async function afkarMoveGroup(id, direction) {
 
     var utter = new SpeechSynthesisUtterance(cleanText);
     utter.lang = 'de-DE';
-    utter.rate = 0.95;
+    utter.rate = 1.15;
     utter.pitch = 1;
     var voice = _aiPickGermanVoice();
     if (voice) utter.voice = voice;
