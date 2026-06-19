@@ -11596,6 +11596,12 @@ async function afkarMoveGroup(id, direction) {
   var _sessionStarted = false;
   var _sessionEnded = false;
   var _speakCallbackId = 0; // يُستخدم لإلغاء callback القديم عند قطع الصوت
+  // تحميل قائمة أصوات المتصفح مبكرًا (بعض المتصفحات، خصوصًا Chrome، تحتاج هذا
+  // + حدث voiceschanged قبل ما تكون أصوات de-DE جاهزة للاستعمال)
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); };
+  }
 
   // ── حالة الجلسة (State Machine) — Teil 1 ────────────────────────
   // المراحل: greeting → presentation → q1 → q2 → closing → done
@@ -11934,18 +11940,7 @@ async function afkarMoveGroup(id, direction) {
       if (!_t3Topic) _t3Topic = t3PickRandomTopic();
       t3RenderTopicCard(_t3Topic);
     }
-    var systemPrompt = getSystemPromptFor(_aiTeil);
-    if (!systemPrompt) {
-      _aiLoading = false;
-      aiSetHint('❌ خطأ في إعداد الجلسة — أعد تحميل الصفحة');
-      return;
-    }
-    if (!window.__getToken || !window.__getToken()) {
-      _aiLoading = false;
-      aiSetHint('❌ انتهت الجلسة — أعد إدخال الكود');
-      return;
-    }
-    callAiApi(systemPrompt, [], function(reply) {
+    callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
       _aiLoading = false;
       // الرسالة الأولى (ترحيب) لا يوجد فيها رد للمستخدم لتقييمه — احذف أي "💡 Feedback" قد يضيفه الموديل خطأً
       reply = reply.replace(/\n*💡\s*Feedback:[^\n]*/gi, '').trim();
@@ -11958,7 +11953,7 @@ async function afkarMoveGroup(id, direction) {
       aiSpeakThenEnableMic(reply);
     }, function() {
       _aiLoading = false;
-      aiSetHint('❌ فشل الاتصال بـ AI — تحقق من الإنترنت وأعد المحاولة');
+      aiSetHint('❌ خطأ — أعد تحميل الصفحة');
     });
   }
 
@@ -12258,6 +12253,9 @@ async function afkarMoveGroup(id, direction) {
 
   function aiStopSpeaking() {
     _speakSeq++; // أي طلب/تشغيل سابق يصبح قديمًا ويتم تجاهله عند وصوله
+    if (window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
     if (_currentAudio) {
       _currentAudio.onended = null;
       _currentAudio.onerror = null;
@@ -12266,57 +12264,55 @@ async function afkarMoveGroup(id, direction) {
     }
   }
 
+  // اختيار أفضل صوت ألماني متوفر في المتصفح/الجهاز (Google على Android، Apple على iOS)
+  function _aiPickGermanVoice() {
+    if (!window.speechSynthesis) return null;
+    var voices = window.speechSynthesis.getVoices() || [];
+    if (!voices.length) return null;
+    return voices.find(function(v){ return v.lang === 'de-DE' && /female|Female|Katja|Anna|Petra/i.test(v.name); })
+        || voices.find(function(v){ return v.lang === 'de-DE'; })
+        || voices.find(function(v){ return v.lang && v.lang.toLowerCase().indexOf('de') === 0; })
+        || null;
+  }
+
+  // ── Web Speech API — نطق مجاني 100%، بدون سيرفر، بدون حدود، مدمج بالمتصفح ──
   function aiSpeak(text, onEnd) {
-    aiStopSpeaking(); // يوقف أي صوت قيد التشغيل ويُلغي أي طلب TTS سابق لم يكتمل بعد
+    aiStopSpeaking(); // يوقف أي صوت قيد التشغيل
     var mySeq = _speakSeq;
     if (_aiMuted) { if (onEnd) onEnd(); return; }
     var cleanText = text.replace(/💡\s*Feedback:[^\n]*/gi, '').trim();
     if (!cleanText) { if (onEnd) onEnd(); return; }
 
-    var token = (window.__getToken ? window.__getToken() : null) || '';
-    aiSetHint('⏳ جارٍ تحميل الصوت...');
-    fetch(WORKER_URL + '/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-      body: JSON.stringify({ text: cleanText })
-    })
-    .then(function(r) {
-      if (!r.ok) {
-        return r.text().then(function(t) {
-          if (mySeq === _speakSeq) aiSetHint('❌ TTS خطأ ' + r.status + ': ' + t.substring(0, 80));
-          throw new Error('TTS ' + r.status);
-        });
-      }
-      return r.json();
-    })
-    .then(function(d) {
-      if (mySeq !== _speakSeq) { return; } // طلب قديم تم تجاوزه بنقرة أحدث — يُتجاهل تمامًا
-      if (!d.audio) { aiSetHint('❌ لا يوجد صوت في الرد'); if (onEnd) onEnd(); return; }
-      // تشغيل base64 مباشرة
-      var src = 'data:audio/mpeg;base64,' + d.audio;
-      var audio = new Audio(src);
-      _currentAudio = audio;
-      audio.onended = function() {
-        if (mySeq === _speakSeq) { _currentAudio = null; aiSetHint('اضغط للإجابة بالألمانية 🎤'); }
-        if (onEnd) onEnd();
-      };
-      audio.onerror = function(e) {
-        if (mySeq === _speakSeq) { aiSetHint('❌ خطأ تشغيل الصوت'); _currentAudio = null; }
-        if (onEnd) onEnd();
-      };
-      audio.play().then(function() {
-        if (mySeq === _speakSeq) aiSetHint('🔊 Frau Müller تتكلم...');
-        else { audio.pause(); } // نقرة أحدث وصلت أثناء التحميل — أوقف هذا الصوت فورًا
-      }).catch(function(e) {
-        if (mySeq === _speakSeq) aiSetHint('❌ play() رفض: ' + e.message);
-        if (onEnd) onEnd();
-      });
-    })
-    .catch(function(e) {
-      if (mySeq !== _speakSeq) return;
-      aiSetHint('❌ fetch خطأ: ' + e.message);
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+      aiSetHint('❌ المتصفح لا يدعم النطق الصوتي');
       if (onEnd) onEnd();
-    });
+      return;
+    }
+
+    var utter = new SpeechSynthesisUtterance(cleanText);
+    utter.lang = 'de-DE';
+    utter.rate = 0.95;
+    utter.pitch = 1;
+    var voice = _aiPickGermanVoice();
+    if (voice) utter.voice = voice;
+
+    utter.onstart = function() {
+      if (mySeq === _speakSeq) aiSetHint('🔊 Frau Müller تتكلم...');
+    };
+    utter.onend = function() {
+      if (mySeq === _speakSeq) aiSetHint('اضغط للإجابة بالألمانية 🎤');
+      if (onEnd) onEnd();
+    };
+    utter.onerror = function(e) {
+      if (mySeq === _speakSeq) aiSetHint('❌ خطأ النطق: ' + (e.error || 'غير معروف'));
+      if (onEnd) onEnd();
+    };
+
+    // بعض المتصفحات تحتاج تأخير بسيط بعد cancel() قبل speak() جديد
+    setTimeout(function() {
+      if (mySeq !== _speakSeq) return; // طلب قديم تم تجاوزه بنقرة أحدث
+      window.speechSynthesis.speak(utter);
+    }, 50);
   }
 
   // ── Mute ───────────────────────────────────────────────────────
@@ -12346,28 +12342,9 @@ async function afkarMoveGroup(id, direction) {
       headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
       body: JSON.stringify({ system: systemPrompt, messages: sentHistory })
     })
-    .then(function(r) {
-      if (!r.ok) {
-        return r.text().then(function(t) {
-          aiSetHint('❌ Worker error ' + r.status + (t ? ': ' + t.substring(0, 60) : ''));
-          throw new Error('http_' + r.status);
-        });
-      }
-      return r.json();
-    })
-    .then(function(d) {
-      if (d && typeof d.reply === 'string' && d.reply.trim() && !d.error) {
-        onSuccess(d.reply);
-      } else {
-        aiSetHint('❌ ' + (d && d.error ? d.error : 'رد فارغ من AI') + ' — حاول مرة أخرى');
-        onError();
-      }
-    })
-    .catch(function(e) {
-      if (e && e.message && e.message.startsWith('http_')) return; // already handled
-      aiSetHint('❌ ' + (e && e.message ? e.message : 'network error') + ' — تحقق من الإنترنت');
-      onError();
-    });
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (d && d.reply) onSuccess(d.reply); else onError(); })
+    .catch(onError);
   }
 
   // ── Rating ─────────────────────────────────────────────────────
