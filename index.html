@@ -11709,8 +11709,7 @@ async function afkarMoveGroup(id, direction) {
   function t2StageInstruction(stage) {
     switch (stage) {
       case 'greeting':
-        var t2TopicName = (_t2Topic && _t2Topic.name) ? _t2Topic.name : 'das Thema';
-        return 'AKTUELLE PHASE: Begrüßung. Sage GENAU diesen Text und nichts anderes: "Hallo und herzlich willkommen! Heute werden wir über den Text "' + t2TopicName + '" sprechen. Meine erste Frage an Sie: Bitte fassen Sie den Inhalt des Textes kurz mit eigenen Worten zusammen. Was hat der Autor besprochen?" — Füge KEINE "💡 Feedback:"-Zeile hinzu.';
+        return 'AKTUELLE PHASE: Begrüßung. Begrüße den Kandidaten kurz und stelle FRAGE 1: bitte ihn, den Inhalt des Textes mit eigenen Worten zusammenzufassen. Stelle noch KEINE andere Frage (noch keine Meinungsfrage). WICHTIG: Der Kandidat hat noch NICHTS gesagt — füge KEINE "💡 Feedback:"-Zeile hinzu, da es noch keine Antwort zu bewerten gibt.';
       case 'inhalt':
         return 'AKTUELLE PHASE: Der Kandidat hat soeben den INHALT zusammengefasst. Stelle jetzt FRAGE 2 (die Meinungsfrage).';
       case 'meinung':
