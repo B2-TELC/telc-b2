@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta http-equiv="Cache-Control" content="public, max-age=3600, stale-while-revalidate=86400">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#c8602a">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-64.png">
@@ -849,6 +849,9 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   <div class="content-area" style="max-width:100%; padding:0.5rem;">
 <style>.hv1-card{background:#fff;border:none;border-radius:18px;margin-bottom:1.8rem;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.09);transition:box-shadow .2s}.hv1-card:hover{box-shadow:0 8px 32px rgba(200,96,42,.13)}.hv1-card-header{background:linear-gradient(135deg,#1a2a3a 60%,#2d4460);color:#fff;display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;letter-spacing:.01em}.hv1-card-header svg{color:#f0c070;flex-shrink:0}.hv1-audio-wrap{flex:1;display:flex;align-items:center}.hv1-audio-wrap audio{flex:1;height:30px;border-radius:20px;filter:invert(1) brightness(.9)}.hv1-table{width:100%;border-collapse:collapse;table-layout:fixed}.hv1-table thead tr{background:linear-gradient(90deg,#1a2a3a,#243547);color:#fff}.hv1-table thead th{padding:.55rem .2rem;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;width:52px;color:#aac8e8}.hv1-table thead th:last-child{text-align:left;width:auto;padding-left:1rem;color:#e0e8f0}.hv1-table tbody tr{border-bottom:1px solid #f2ede6;transition:background .15s}.hv1-table tbody tr:last-child{border-bottom:none}.hv1-table tbody tr:hover{background:#fdf9f5}.hv1-table tbody td{padding:.75rem .2rem;font-size:.92rem;line-height:1.6;word-wrap:break-word;color:var(--ink);vertical-align:middle}.hv1-table tbody td.hv1-radio-cell{text-align:center;width:52px}.hv1-table tbody td.hv1-radio-cell input[type=radio]{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}.hv1-table tbody td:last-child{padding-left:1rem}.hv1-card-footer{padding:.9rem 1.1rem;border-top:1px solid #f0ebe2;background:linear-gradient(90deg,#faf7f2,#f5f0e8);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.hv1-check-btn{background:linear-gradient(135deg,#1a2a3a,#2d4460);color:#fff;border:none;border-radius:10px;padding:.55rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(26,42,58,.18)}.hv1-check-btn:hover{background:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,96,42,.28)}.hv1-result-msg{font-size:.84rem;color:var(--muted);margin-top:.2rem;display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;font-weight:500}.hv1-row-correct td{background:#edfbef !important}.hv1-row-correct td:last-child{border-left:3px solid #43a047}.hv1-row-wrong td{background:#fff3f3 !important}.hv1-row-wrong td:last-child{border-left:3px solid #e53935}.hv-title-highlight{background:#ffe066;color:#7a4f00;border-radius:3px;padding:0 2px;font-weight:700;}</style>
 <script>
+function buildHvCardWithDemoCheck(buildFn, exam, idx) {
+  return buildFn(exam);
+}
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 <script>var hv1Data = [];</script>
@@ -1339,7 +1342,7 @@ applyHv2AdminData(); // سيُعاد استدعاؤه بعد تحميل Firebase
   if (!c) return;
   if (hv2Data.length === 0) return; // بيانات لم تُحمَّل بعد — الـ lazy loader سيُحدّث الواجهة
   var html = '';
-  hv2Data.forEach(function(exam, idx){ html += buildHv2Card(exam); });
+  hv2Data.forEach(function(exam, idx){ html += buildHvCardWithDemoCheck(buildHv2Card, exam, idx); });
   c.innerHTML = html;
 })();</script>
   </div>
@@ -1452,7 +1455,7 @@ applyHv3AdminData();</script>
   if (!c) return;
   if (hv3Data.length === 0) return; // بيانات لم تُحمَّل بعد — الـ lazy loader سيُحدّث الواجهة
   var html = '';
-  hv3Data.forEach(function(exam, idx){ html += buildHv3Card(exam); });
+  hv3Data.forEach(function(exam, idx){ html += buildHvCardWithDemoCheck(buildHv3Card, exam, idx); });
   c.innerHTML = html;
 })();</script>
   </div>
@@ -3404,7 +3407,7 @@ async function fetchRemoteData() {
         applyHv1AdminData();
         var c1 = document.getElementById('hv1-cards-container');
         if (c1 && typeof buildHv1Card === 'function') {
-          var h1 = ''; hv1Data.forEach(function(e,i){ h1 += buildHv1Card(e); });
+          var h1 = ''; hv1Data.forEach(function(e,i){ h1 += buildHvCardWithDemoCheck(buildHv1Card, e, i); });
           c1.innerHTML = h1; if(typeof hvAdjustTitles==='function') hvAdjustTitles();
         }
       }
@@ -3412,7 +3415,7 @@ async function fetchRemoteData() {
         applyHv2AdminData();
         var c2 = document.getElementById('hv2-cards-container');
         if (c2 && typeof buildHv2Card === 'function') {
-          var h2 = ''; hv2Data.forEach(function(e,i){ h2 += buildHv2Card(e); });
+          var h2 = ''; hv2Data.forEach(function(e,i){ h2 += buildHvCardWithDemoCheck(buildHv2Card, e, i); });
           c2.innerHTML = h2; if(typeof hvAdjustTitles==='function') hvAdjustTitles();
         }
       }
@@ -3420,7 +3423,7 @@ async function fetchRemoteData() {
         applyHv3AdminData();
         var c3 = document.getElementById('hv3-cards-container');
         if (c3 && typeof buildHv3Card === 'function') {
-          var h3 = ''; hv3Data.forEach(function(e,i){ h3 += buildHv3Card(e); });
+          var h3 = ''; hv3Data.forEach(function(e,i){ h3 += buildHvCardWithDemoCheck(buildHv3Card, e, i); });
           c3.innerHTML = h3; if(typeof hvAdjustTitles==='function') hvAdjustTitles();
         }
       }
@@ -3749,7 +3752,7 @@ async function _lazyLoadSection(section) {
         const hv1 = await fetchOneSection('hv1data');
         if (hv1 && Object.keys(hv1).length > 0) { remoteData.hv1data = hv1; try { localStorage.setItem('telc_hv1_admin', JSON.stringify(hv1)); } catch(e){} }
       }
-      if (typeof applyHv1AdminData === 'function') { applyHv1AdminData(); var c1 = document.getElementById('hv1-cards-container'); if (c1 && typeof buildHv1Card === 'function') { var h1 = ''; hv1Data.forEach(function(e,i){ h1 += buildHv1Card(e); }); c1.innerHTML = h1; if(typeof hvAdjustTitles==='function') hvAdjustTitles(); } }
+      if (typeof applyHv1AdminData === 'function') { applyHv1AdminData(); var c1 = document.getElementById('hv1-cards-container'); if (c1 && typeof buildHv1Card === 'function') { var h1 = ''; hv1Data.forEach(function(e,i){ h1 += buildHvCardWithDemoCheck(buildHv1Card, e, i); }); c1.innerHTML = h1; if(typeof hvAdjustTitles==='function') hvAdjustTitles(); } }
     } else if (section === 'hv-t2') {
       var _useCache_hv2 = _isCacheValid('telc_hv2_admin');
       if (_useCache_hv2) {
@@ -3763,7 +3766,7 @@ async function _lazyLoadSection(section) {
         applyHv2AdminData();
         var c2 = document.getElementById('hv2-cards-container');
         if (c2 && typeof buildHv2Card === 'function') {
-          var h2 = ''; hv2Data.forEach(function(e,i){ h2 += buildHv2Card(e); });
+          var h2 = ''; hv2Data.forEach(function(e,i){ h2 += buildHvCardWithDemoCheck(buildHv2Card, e, i); });
           c2.innerHTML = h2; if(typeof hvAdjustTitles==='function') hvAdjustTitles();
         }
       }
@@ -3780,7 +3783,7 @@ async function _lazyLoadSection(section) {
         applyHv3AdminData();
         var c3 = document.getElementById('hv3-cards-container');
         if (c3 && typeof buildHv3Card === 'function') {
-          var h3 = ''; hv3Data.forEach(function(e,i){ h3 += buildHv3Card(e); });
+          var h3 = ''; hv3Data.forEach(function(e,i){ h3 += buildHvCardWithDemoCheck(buildHv3Card, e, i); });
           c3.innerHTML = h3; if(typeof hvAdjustTitles==='function') hvAdjustTitles();
         }
       }
@@ -10990,7 +10993,7 @@ async function reorderExam(section, idx, dir) {
     (function(){ var t = hv1Data[idx]; hv1Data[idx] = hv1Data[newIdx]; hv1Data[newIdx] = t; })();
     var newData = {}; hv1Data.forEach(function(e,i){ newData[i+1] = {title:e.title,audio:e.audio,sentences:e.sentences,answers:e.answers}; });
     saveHv1AdminData(newData); applyHv1AdminData();
-    var c = document.getElementById('hv1-cards-container'); if(c){var h='';hv1Data.forEach(function(e,i){h+=buildHv1Card(e);});c.innerHTML=h;}
+    var c = document.getElementById('hv1-cards-container'); if(c){var h='';hv1Data.forEach(function(e,i){h+=buildHvCardWithDemoCheck(buildHv1Card,e,i);});c.innerHTML=h;}
     renderHv1AdminList(); return;
   }
   // ---- HV2 ----
@@ -10999,7 +11002,7 @@ async function reorderExam(section, idx, dir) {
     (function(){ var t = hv2Data[idx]; hv2Data[idx] = hv2Data[newIdx]; hv2Data[newIdx] = t; })();
     var newData = {}; hv2Data.forEach(function(e,i){ newData[i+1] = {title:e.title,audio:e.audio,sentences:e.sentences,answers:e.answers}; });
     saveHv2AdminData(newData); applyHv2AdminData();
-    var c = document.getElementById('hv2-cards-container'); if(c){var h='';hv2Data.forEach(function(e,i){h+=buildHv2Card(e);});c.innerHTML=h;}
+    var c = document.getElementById('hv2-cards-container'); if(c){var h='';hv2Data.forEach(function(e,i){h+=buildHvCardWithDemoCheck(buildHv2Card,e,i);});c.innerHTML=h;}
     renderHv2AdminList(); return;
   }
   // ---- HV3 ----
@@ -11010,7 +11013,7 @@ async function reorderExam(section, idx, dir) {
     saveHv3AdminData(newData);
     hv3Data.length=0; Object.keys(newData).forEach(function(k){var s=newData[k];hv3Data.push({id:parseInt(k),title:s.title,audio:s.audio||'',sentences:s.sentences||[],answers:s.answers||[]});});
     hv3Data.sort(function(a,b){return a.id-b.id;});
-    var c = document.getElementById('hv3-cards-container'); if(c){var h='';hv3Data.forEach(function(e,i){h+=buildHv3Card(e);});c.innerHTML=h;}
+    var c = document.getElementById('hv3-cards-container'); if(c){var h='';hv3Data.forEach(function(e,i){h+=buildHvCardWithDemoCheck(buildHv3Card,e,i);});c.innerHTML=h;}
     renderHv3AdminList(); return;
   }
   // ---- SB1 ----
