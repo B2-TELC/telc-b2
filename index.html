@@ -12368,8 +12368,8 @@ async function afkarMoveGroup(id, direction) {
       if (res.body && res.body.reply) {
         onSuccess(res.body.reply);
       } else {
-        // ✅ DEBUG: نمرر تفاصيل الخطأ الحقيقية بدل ما نخفيها
-        var detail = res.body ? (res.body.error || JSON.stringify(res.body)) : ('HTTP ' + res.status);
+        // ✅ DEBUG: نمرر تفاصيل الخطأ الحقيقية (error + detail) بدل ما نخفيها
+        var detail = res.body ? ((res.body.error || '') + (res.body.detail ? ' | ' + res.body.detail : '')) : ('HTTP ' + res.status);
         onError(detail);
       }
     })
