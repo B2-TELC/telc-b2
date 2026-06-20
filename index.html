@@ -11967,9 +11967,9 @@ async function afkarMoveGroup(id, direction) {
       if (_aiTeil === 't2') t2AdvanceStage();
       // تتكلم أولاً ثم تفتح المايك
       aiSpeakThenEnableMic(reply);
-    }, function() {
+    }, function(detail) {
       _aiLoading = false;
-      aiSetHint('❌ خطأ — أعد تحميل الصفحة');
+      aiSetHint('❌ خطأ: ' + (detail || 'غير معروف')); // ✅ DEBUG: رسالة حقيقية بدل "أعد تحميل الصفحة"
     });
   }
 
@@ -12358,9 +12358,25 @@ async function afkarMoveGroup(id, direction) {
       headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
       body: JSON.stringify({ system: systemPrompt, messages: sentHistory })
     })
-    .then(function(r) { return r.json(); })
-    .then(function(d) { if (d && d.reply) onSuccess(d.reply); else onError(); })
-    .catch(onError);
+    .then(function(r) {
+      // ✅ DEBUG: نطبع الـ status code حتى لو الرد مش JSON سليم
+      return r.json().then(function(d) { return { status: r.status, body: d }; })
+        .catch(function() { return { status: r.status, body: null }; });
+    })
+    .then(function(res) {
+      console.log('[ai-chat DEBUG] status=', res.status, 'body=', res.body); // ✅ DEBUG
+      if (res.body && res.body.reply) {
+        onSuccess(res.body.reply);
+      } else {
+        // ✅ DEBUG: نمرر تفاصيل الخطأ الحقيقية بدل ما نخفيها
+        var detail = res.body ? (res.body.error || JSON.stringify(res.body)) : ('HTTP ' + res.status);
+        onError(detail);
+      }
+    })
+    .catch(function(e) {
+      console.log('[ai-chat DEBUG] network/fetch error:', e); // ✅ DEBUG
+      onError(e && e.message ? e.message : 'network error');
+    });
   }
 
   // ── Rating ─────────────────────────────────────────────────────
