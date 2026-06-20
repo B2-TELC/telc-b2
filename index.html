@@ -12291,7 +12291,7 @@ async function afkarMoveGroup(id, direction) {
         || null;
   }
 
-  // ── Web Speech API — نطق مجاني 100%، بدون سيرفر، بدون حدود، مدمج بالمتصفح ──
+  // ── OpenAI TTS (صوت nova) — جودة أعلى من صوت المتصفح، عبر /api/tts ──
   function aiSpeak(text, onEnd) {
     aiStopSpeaking(); // يوقف أي صوت قيد التشغيل
     var mySeq = _speakSeq;
@@ -12299,8 +12299,50 @@ async function afkarMoveGroup(id, direction) {
     var cleanText = text.replace(/💡\s*Feedback:[^\n]*/gi, '').trim();
     if (!cleanText) { if (onEnd) onEnd(); return; }
 
+    var token = (window.__getToken ? window.__getToken() : null) || '';
+    fetch(WORKER_URL + '/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+      body: JSON.stringify({ text: cleanText })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (mySeq !== _speakSeq) return; // طلب قديم تم تجاوزه بنقرة أحدث
+      if (!data || !data.audio) throw new Error(data && data.error ? data.error : 'no audio');
+
+      var audio = new Audio('data:audio/mpeg;base64,' + data.audio);
+      _currentAudio = audio;
+
+      audio.onplay = function() {
+        if (mySeq === _speakSeq) aiSetHint('🔊 Frau Müller تتكلم...');
+      };
+      audio.onended = function() {
+        if (mySeq === _speakSeq) { aiSetHint('اضغط للإجابة بالألمانية 🎤'); _currentAudio = null; }
+        if (onEnd) onEnd();
+      };
+      audio.onerror = function() {
+        console.error('OpenAI TTS playback error');
+        if (mySeq !== _speakSeq) return;
+        _currentAudio = null;
+        _aiSpeakBrowser(cleanText, mySeq, onEnd);
+      };
+      audio.play().catch(function(e) {
+        console.error('Audio play() error:', e);
+        if (mySeq === _speakSeq) { _currentAudio = null; _aiSpeakBrowser(cleanText, mySeq, onEnd); }
+        else if (onEnd) onEnd();
+      });
+    })
+    .catch(function(e) {
+      console.error('OpenAI TTS error, falling back to browser voice:', e);
+      if (mySeq !== _speakSeq) return;
+      _aiSpeakBrowser(cleanText, mySeq, onEnd);
+    });
+  }
+
+  // ── احتياطي: Web Speech API (صوت المتصفح المجاني) — يُستعمل فقط إذا فشل OpenAI TTS ──
+  function _aiSpeakBrowser(cleanText, mySeq, onEnd) {
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
-      aiSetHint('❌ المتصفح لا يدعم النطق الصوتي');
+      aiSetHint('❌ تعذّر تشغيل الصوت');
       if (onEnd) onEnd();
       return;
     }
