@@ -7,11 +7,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta http-equiv="Cache-Control" content="public, max-age=3600, stale-while-revalidate=86400">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#c8602a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon-64.png">
 <!-- ✅ [5] CSP: تمنع تنفيذ سكريبتات خارجية غير موثوقة -->
 <!-- ⚠️ unsafe-inline مطلوب بسبب الـ inline scripts والـ onclick attrs — لا يمكن إزالته بدون إعادة هيكلة كاملة -->
 <!-- ✅ تم تقوية الـ CSP بإضافة: object-src, frame-ancestors, base-uri, upgrade-insecure-requests -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; manifest-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -336,6 +339,11 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     <button class="gate-admin-link" onclick="document.getElementById('admin-gate-overlay').style.display='none';document.getElementById('gate-overlay').style.display='flex';">← Zurück</button>
   </div>
 </div>
+<!-- ===== PWA INSTALL: بانر تلقائي عند الدخول من فيسبوك/انستغرام ===== -->
+<div id="pwa-inapp-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10600;background:#c8602a;color:#fff;padding:.65rem 1rem;font-family:'DM Sans',sans-serif;font-size:.78rem;align-items:center;justify-content:center;gap:.6rem;direction:rtl;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.18);">
+  <span id="pwa-inapp-banner-msg" style="flex:1;line-height:1.5;"></span>
+  <button onclick="pwaDismissInAppBanner()" style="background:none;border:none;color:#fff;font-size:1.05rem;cursor:pointer;padding:0 .3rem;line-height:1;flex-shrink:0;">×</button>
+</div>
 <!-- ===== PWA INSTALL: modal + منطق التثبيت ===== -->
 <div class="gate-overlay" id="pwa-install-overlay" style="display:none;z-index:10500;">
   <div class="gate-box" style="direction:rtl;text-align:right;max-width:340px;">
@@ -346,65 +354,6 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 </div>
 <script>
 (function(){
-  // --- توليد أيقونة بسيطة (B2) بدون الحاجة لملف صورة خارجي ---
-  function pwaMakeIcon(size){
-    var c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    var ctx = c.getContext('2d');
-    var r = size * 0.18;
-    ctx.fillStyle = '#c8602a';
-    ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.lineTo(size - r, 0);
-    ctx.quadraticCurveTo(size, 0, size, r);
-    ctx.lineTo(size, size - r);
-    ctx.quadraticCurveTo(size, size, size - r, size);
-    ctx.lineTo(r, size);
-    ctx.quadraticCurveTo(0, size, 0, size - r);
-    ctx.lineTo(0, r);
-    ctx.quadraticCurveTo(0, 0, r, 0);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold ' + Math.round(size * 0.42) + 'px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('B2', size / 2, size * 0.54);
-    return c.toDataURL('image/png');
-  }
-
-  // --- بناء manifest.json ديناميكياً عبر Blob (بدون ملف خارجي) ---
-  function pwaSetupManifest(){
-    try {
-      var icon192 = pwaMakeIcon(192);
-      var icon512 = pwaMakeIcon(512);
-      var manifest = {
-        name: 'TELC-PRO — تحضير امتحان الألمانية B2',
-        short_name: 'TELC-PRO',
-        start_url: './',
-        scope: './',
-        display: 'standalone',
-        background_color: '#f5f0e8',
-        theme_color: '#c8602a',
-        orientation: 'portrait',
-        icons: [
-          { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-        ]
-      };
-      var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-      var url = URL.createObjectURL(blob);
-      var link = document.querySelector('link[rel="manifest"]');
-      if(!link){ link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
-      link.href = url;
-
-      var appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-      if(!appleIcon){ appleIcon = document.createElement('link'); appleIcon.rel = 'apple-touch-icon'; document.head.appendChild(appleIcon); }
-      appleIcon.href = icon192;
-    } catch(e){}
-  }
-  pwaSetupManifest();
-
   // --- اكتشاف الحالة ---
   window.__pwaDeferredPrompt = null;
   window.addEventListener('beforeinstallprompt', function(e){
@@ -428,11 +377,52 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   function pwaIsIOS(){
     return /iPhone|iPad|iPod/i.test(navigator.userAgent) && !window.MSStream;
   }
+  function pwaIsAndroid(){
+    return /Android/i.test(navigator.userAgent);
+  }
+
+  window.pwaOpenInChrome = function(){
+    try {
+      var target = location.href.replace(/^https?:\/\//i, '');
+      window.location.href = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;end';
+    } catch(e){}
+  };
+
+  window.pwaDismissInAppBanner = function(){
+    var b = document.getElementById('pwa-inapp-banner');
+    if(b) b.style.display = 'none';
+    try { sessionStorage.setItem('pwaBannerDismissed', '1'); } catch(e){}
+  };
+
+  function pwaShowInAppBanner(){
+    var banner = document.getElementById('pwa-inapp-banner');
+    var msg = document.getElementById('pwa-inapp-banner-msg');
+    if(!banner || !msg) return;
+    try { if(sessionStorage.getItem('pwaBannerDismissed')) return; } catch(e){}
+    if(pwaIsAndroid()){
+      msg.innerHTML = '⚠️ أنت داخل فيسبوك/إنستغرام — للتثبيت افتح فـ متصفح عادي: <button onclick="pwaOpenInChrome()" style="background:#fff;color:#c8602a;border:none;border-radius:100px;padding:.28rem .85rem;font-weight:700;font-size:.72rem;cursor:pointer;margin-right:.3rem;">افتح في Chrome ↗</button>';
+    } else {
+      msg.innerHTML = '⚠️ أنت داخل فيسبوك/إنستغرام — اضغط ⋮ أو 🔗 فوق فـ الصفحة واختار "فتح في Safari" للتثبيت';
+    }
+    banner.style.display = 'flex';
+  }
 
   document.addEventListener('DOMContentLoaded', function(){
     if(pwaIsStandalone()){
       var btn = document.getElementById('pwa-install-btn');
       if(btn) btn.style.display = 'none';
+      return;
+    }
+    if(pwaIsInAppBrowser()){
+      pwaShowInAppBanner();
+      if(pwaIsAndroid()){
+        try {
+          if(!sessionStorage.getItem('pwaAutoRedirectTried')){
+            sessionStorage.setItem('pwaAutoRedirectTried', '1');
+            setTimeout(function(){ pwaOpenInChrome(); }, 800);
+          }
+        } catch(e){}
+      }
     }
   });
 
@@ -443,7 +433,11 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 
   window.installPWA = async function(){
     if(pwaIsInAppBrowser()){
-      pwaShowInstructions('<p>⚠️ أنت فاتح الموقع من داخل تطبيق آخر (فيسبوك / إنستغرام...)، وهذا لا يسمح بتثبيت أي موقع كتطبيق.</p><p>افتح الموقع في متصفح <b>Chrome</b> أو <b>Safari</b> العادي (في الأعلى أو الأسفل، اختار "فتح في المتصفح")، وبعدها رجع جرب من جديد.</p>');
+      if(pwaIsAndroid()){
+        pwaShowInstructions('<p>⚠️ أنت فاتح الموقع من داخل تطبيق آخر (فيسبوك / إنستغرام...)، وهذا لا يسمح بتثبيت أي موقع كتطبيق.</p><p>اضغط على الزر تحت باش يفتح الموقع في Chrome مباشرة:</p><button onclick="pwaOpenInChrome()" class="gate-btn" style="margin-bottom:.8rem;">↗ افتح في Chrome وجرب من جديد</button><p style="opacity:.7;font-size:.78rem;">إذا ما خدمتش، اضغط على أيقونة <b>⋮</b> فوق في الصفحة واختار "فتح في المتصفح" / "Open in Browser".</p>');
+      } else {
+        pwaShowInstructions('<p>⚠️ أنت فاتح الموقع من داخل تطبيق آخر (فيسبوك / إنستغرام...)، وهذا لا يسمح بتثبيت أي موقع كتطبيق.</p><p>اضغط على أيقونة <b>⋮</b> أو <b>•••</b> فوق في الصفحة، واختار <b>"فتح في Safari"</b> أو <b>"Open in Browser"</b>، وبعدها رجع جرب من جديد.</p>');
+      }
       return;
     }
     if(window.__pwaDeferredPrompt){
