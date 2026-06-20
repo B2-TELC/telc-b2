@@ -174,11 +174,7 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 .ai-mic-big.recording{background:#e53935;animation:micPulse 1s infinite;box-shadow:0 4px 20px rgba(229,57,53,.45);}
 .ai-mic-big.processing{background:#b35424;cursor:wait;opacity:.8;}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.5)}50%{box-shadow:0 0 0 14px rgba(229,57,53,0)}}
-.demo-locked-item{position:relative;pointer-events:none;user-select:none;}
-.demo-locked-item::after{content:'';position:absolute;inset:0;background:rgba(245,240,232,0.7);border-radius:12px;backdrop-filter:blur(1px);}
-.demo-lock-badge{position:absolute;top:50%;right:1.1rem;transform:translateY(-50%);z-index:2;display:flex;align-items:center;gap:.35rem;background:var(--ink);color:var(--paper);font-size:.72rem;font-weight:700;padding:.3rem .75rem;border-radius:100px;letter-spacing:.04em;pointer-events:none;}
-.demo-banner{position:fixed;bottom:0;left:0;right:0;z-index:8888;background:var(--ink);color:var(--paper);padding:.65rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.82rem;direction:rtl;}
-.demo-banner a{color:var(--accent);font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;}
+
 @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
 .skeleton-item{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border:1.5px solid var(--border);border-radius:12px;background:var(--card);gap:1rem}
 .skeleton-left{display:flex;align-items:center;gap:1rem;flex:1}
@@ -305,9 +301,7 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     <div class="gate-error" id="gate-error">Ungültiger oder abgelaufener Code.</div>
     <div id="gate-detail" style="display:none;direction:rtl;text-align:right;background:#fff8f0;border:1px solid #f0d8c8;border-radius:8px;padding:.7rem .9rem;margin-top:.1rem;margin-bottom:.5rem;font-size:.8rem;line-height:1.7;color:#7a4020;font-family:'DM Sans',sans-serif;"></div>
     <button class="gate-btn" onclick="checkGate()">Zugang freischalten</button>
-    <br>
-    <button onclick="startDemoMode()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;cursor:pointer;padding:.3rem .9rem;margin-bottom:.4rem;transition:color .2s,border-color .2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">🔍 تجربة الموقع</button>
-    <br>
+
     <button class="gate-admin-link" onclick="openAdminGate()">Admin-Bereich →</button>
     <br>
     <button id="pwa-install-btn" onclick="installPWA()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;cursor:pointer;padding:.3rem .9rem;margin-top:.6rem;transition:color .2s,border-color .2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">📲 تحميل الموقع كتطبيق</button>
@@ -319,11 +313,7 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     </div>
   </div>
 </div>
-<div id="demo-banner" style="display:none;position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:8888;background:rgba(26,26,24,0.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f5f0e8;padding:.5rem 1.1rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.75rem;display:none;align-items:center;gap:.75rem;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.18);">
-  <span style="opacity:.75;">🔍 وضع التجربة — أول 4 اختبارات</span>
-  <span style="width:1px;height:12px;background:rgba(255,255,255,0.2);display:inline-block;"></span>
-  <a href="https://www.facebook.com/profile.php?id=61589228999977" target="_blank" rel="noopener noreferrer" style="color:#f0a070;font-weight:600;cursor:pointer;text-decoration:none;">الحصول على كود ←</a>
-</div>
+
 <div class="gate-overlay" id="admin-gate-overlay" style="display:none;">
   <div class="gate-box">
     <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
@@ -338,11 +328,6 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     <br>
     <button class="gate-admin-link" onclick="document.getElementById('admin-gate-overlay').style.display='none';document.getElementById('gate-overlay').style.display='flex';">← Zurück</button>
   </div>
-</div>
-<!-- ===== PWA INSTALL: بانر تلقائي عند الدخول من فيسبوك/انستغرام ===== -->
-<div id="pwa-inapp-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10600;background:#c8602a;color:#fff;padding:.65rem 1rem;font-family:'DM Sans',sans-serif;font-size:.78rem;align-items:center;justify-content:center;gap:.6rem;direction:rtl;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.18);">
-  <span id="pwa-inapp-banner-msg" style="flex:1;line-height:1.5;"></span>
-  <button onclick="pwaDismissInAppBanner()" style="background:none;border:none;color:#fff;font-size:1.05rem;cursor:pointer;padding:0 .3rem;line-height:1;flex-shrink:0;">×</button>
 </div>
 <!-- ===== PWA INSTALL: modal + منطق التثبيت ===== -->
 <div class="gate-overlay" id="pwa-install-overlay" style="display:none;z-index:10500;">
@@ -388,24 +373,12 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     } catch(e){}
   };
 
-  window.pwaDismissInAppBanner = function(){
-    var b = document.getElementById('pwa-inapp-banner');
-    if(b) b.style.display = 'none';
-    try { sessionStorage.setItem('pwaBannerDismissed', '1'); } catch(e){}
+  window.pwaOpenInSafari = function(){
+    try {
+      var target = location.href.replace(/^https?:\/\//i, '');
+      window.location.href = 'x-safari-https://' + target;
+    } catch(e){}
   };
-
-  function pwaShowInAppBanner(){
-    var banner = document.getElementById('pwa-inapp-banner');
-    var msg = document.getElementById('pwa-inapp-banner-msg');
-    if(!banner || !msg) return;
-    try { if(sessionStorage.getItem('pwaBannerDismissed')) return; } catch(e){}
-    if(pwaIsAndroid()){
-      msg.innerHTML = '⚠️ أنت داخل فيسبوك/إنستغرام — للتثبيت افتح فـ متصفح عادي: <button onclick="pwaOpenInChrome()" style="background:#fff;color:#c8602a;border:none;border-radius:100px;padding:.28rem .85rem;font-weight:700;font-size:.72rem;cursor:pointer;margin-right:.3rem;">افتح في Chrome ↗</button>';
-    } else {
-      msg.innerHTML = '⚠️ أنت داخل فيسبوك/إنستغرام — اضغط ⋮ أو 🔗 فوق فـ الصفحة واختار "فتح في Safari" للتثبيت';
-    }
-    banner.style.display = 'flex';
-  }
 
   document.addEventListener('DOMContentLoaded', function(){
     if(pwaIsStandalone()){
@@ -413,16 +386,14 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
       if(btn) btn.style.display = 'none';
       return;
     }
-    if(pwaIsInAppBrowser()){
-      pwaShowInAppBanner();
-      if(pwaIsAndroid()){
-        try {
-          if(!sessionStorage.getItem('pwaAutoRedirectTried')){
-            sessionStorage.setItem('pwaAutoRedirectTried', '1');
-            setTimeout(function(){ pwaOpenInChrome(); }, 800);
-          }
-        } catch(e){}
-      }
+    // فتح تلقائي صامت لـ Chrome عند الدخول من فيسبوك/إنستغرام على أندرويد — بلا أي بانر أو رسالة تبان
+    if(pwaIsInAppBrowser() && pwaIsAndroid()){
+      try {
+        if(!sessionStorage.getItem('pwaAutoRedirectTried')){
+          sessionStorage.setItem('pwaAutoRedirectTried', '1');
+          setTimeout(function(){ pwaOpenInChrome(); }, 200);
+        }
+      } catch(e){}
     }
   });
 
@@ -434,9 +405,9 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   window.installPWA = async function(){
     if(pwaIsInAppBrowser()){
       if(pwaIsAndroid()){
-        pwaShowInstructions('<p>⚠️ أنت فاتح الموقع من داخل تطبيق آخر (فيسبوك / إنستغرام...)، وهذا لا يسمح بتثبيت أي موقع كتطبيق.</p><p>اضغط على الزر تحت باش يفتح الموقع في Chrome مباشرة:</p><button onclick="pwaOpenInChrome()" class="gate-btn" style="margin-bottom:.8rem;">↗ افتح في Chrome وجرب من جديد</button><p style="opacity:.7;font-size:.78rem;">إذا ما خدمتش، اضغط على أيقونة <b>⋮</b> فوق في الصفحة واختار "فتح في المتصفح" / "Open in Browser".</p>');
+        pwaOpenInChrome();
       } else {
-        pwaShowInstructions('<p>⚠️ أنت فاتح الموقع من داخل تطبيق آخر (فيسبوك / إنستغرام...)، وهذا لا يسمح بتثبيت أي موقع كتطبيق.</p><p>اضغط على أيقونة <b>⋮</b> أو <b>•••</b> فوق في الصفحة، واختار <b>"فتح في Safari"</b> أو <b>"Open in Browser"</b>، وبعدها رجع جرب من جديد.</p>');
+        pwaShowInstructions('<p>⚠️ <b>فيسبوك / إنستغرام</b> لا يسمحان بتحميل التطبيقات من داخلهما.</p><p>افتح الموقع في <b>Safari</b> باش تقدر تنزّل التطبيق:</p><button onclick="pwaOpenInSafari()" class="gate-btn" style="margin-bottom:.8rem;">🔗 افتح في Safari</button><p style="opacity:.7;font-size:.78rem;">إذا ما خدمتش، اضغط على أيقونة <b>⋮</b> أو <b>•••</b> فوق في الصفحة واختار <b>"فتح في Safari"</b> / "Open in Browser"، وبعدها رجع جرب من جديد.</p>');
       }
       return;
     }
@@ -878,19 +849,7 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   <div class="content-area" style="max-width:100%; padding:0.5rem;">
 <style>.hv1-card{background:#fff;border:none;border-radius:18px;margin-bottom:1.8rem;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.09);transition:box-shadow .2s}.hv1-card:hover{box-shadow:0 8px 32px rgba(200,96,42,.13)}.hv1-card-header{background:linear-gradient(135deg,#1a2a3a 60%,#2d4460);color:#fff;display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;letter-spacing:.01em}.hv1-card-header svg{color:#f0c070;flex-shrink:0}.hv1-audio-wrap{flex:1;display:flex;align-items:center}.hv1-audio-wrap audio{flex:1;height:30px;border-radius:20px;filter:invert(1) brightness(.9)}.hv1-table{width:100%;border-collapse:collapse;table-layout:fixed}.hv1-table thead tr{background:linear-gradient(90deg,#1a2a3a,#243547);color:#fff}.hv1-table thead th{padding:.55rem .2rem;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;width:52px;color:#aac8e8}.hv1-table thead th:last-child{text-align:left;width:auto;padding-left:1rem;color:#e0e8f0}.hv1-table tbody tr{border-bottom:1px solid #f2ede6;transition:background .15s}.hv1-table tbody tr:last-child{border-bottom:none}.hv1-table tbody tr:hover{background:#fdf9f5}.hv1-table tbody td{padding:.75rem .2rem;font-size:.92rem;line-height:1.6;word-wrap:break-word;color:var(--ink);vertical-align:middle}.hv1-table tbody td.hv1-radio-cell{text-align:center;width:52px}.hv1-table tbody td.hv1-radio-cell input[type=radio]{width:20px;height:20px;accent-color:var(--accent);cursor:pointer}.hv1-table tbody td:last-child{padding-left:1rem}.hv1-card-footer{padding:.9rem 1.1rem;border-top:1px solid #f0ebe2;background:linear-gradient(90deg,#faf7f2,#f5f0e8);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.hv1-check-btn{background:linear-gradient(135deg,#1a2a3a,#2d4460);color:#fff;border:none;border-radius:10px;padding:.55rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(26,42,58,.18)}.hv1-check-btn:hover{background:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,96,42,.28)}.hv1-result-msg{font-size:.84rem;color:var(--muted);margin-top:.2rem;display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;font-weight:500}.hv1-row-correct td{background:#edfbef !important}.hv1-row-correct td:last-child{border-left:3px solid #43a047}.hv1-row-wrong td{background:#fff3f3 !important}.hv1-row-wrong td:last-child{border-left:3px solid #e53935}.hv-title-highlight{background:#ffe066;color:#7a4f00;border-radius:3px;padding:0 2px;font-weight:700;}</style>
 <script>
-// دالة مساعدة: بناء بطاقة HV أو بطاقة مقفلة في وضع التجربة
 function buildHvCardWithDemoCheck(buildFn, exam, idx) {
-  if (isDemoLocked(idx)) {
-    return '<div style="position:relative;border-radius:18px;margin-bottom:1.8rem;overflow:hidden;' +
-      'background:var(--card);border:1px solid var(--border);padding:2rem 1.5rem;' +
-      'display:flex;align-items:center;justify-content:space-between;opacity:.6;">' +
-      '<div style="display:flex;align-items:center;gap:1rem;">' +
-        '<span style="font-family:\'DM Mono\',monospace;font-size:1.4rem;font-weight:900;color:var(--border);">' + String(idx+1).padStart(2,'0') + '</span>' +
-        '<div style="font-family:\'Playfair Display\',serif;font-size:1rem;font-weight:700;color:var(--muted);filter:blur(3px);">' + escHtml(exam.title || 'Prüfung') + '</div>' +
-      '</div>' +
-      '<div style="background:var(--ink);color:var(--paper);font-size:.75rem;font-weight:700;padding:.35rem .85rem;border-radius:100px;display:flex;align-items:center;gap:.35rem;">🔒 مقفل</div>' +
-    '</div>';
-  }
   return buildFn(exam);
 }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -3638,7 +3597,7 @@ async function _syncCodesIndex() {
       if(m.target.id === 'gate-overlay'){
         var el = m.target;
         var s = el.style.display;
-        if(s === 'none' && !window.__gateUnlocked && !window.__demoMode){
+        if(s === 'none' && !window.__gateUnlocked){
           el.style.display = 'flex';
         }
       }
@@ -3726,7 +3685,7 @@ function _isCacheValid(localKey) {
 }
 
 async function _lazyLoadSection(section) {
-  if (!window.__gateUnlocked && !window.__demoMode) return;
+  if (!window.__gateUnlocked) return;
   if (section === 'mundlich' || section === 'lv-t1' || section === 'lv-t2' || section === 'lv-t3' ||
       section === 'hv-t1' || section === 'hv-t2' || section === 'hv-t3' || section === 'mdt2' || section === 'mdt3' || section === 'sw') {
     // إذا كان الـ cache صالح → لا تُعيد التعيين
@@ -3925,12 +3884,12 @@ function _prioritizeSection(section) {
 
 async function _runBgLoader() {
   if (_bgLoadActive) return;
-  if (!window.__gateUnlocked && !window.__demoMode) return;
+  if (!window.__gateUnlocked) return;
   _bgLoadActive = true;
   await _fetchAndCheckVersion();
   try {
     while (_bgLoadQueue.length > 0) {
-      if (!window.__gateUnlocked && !window.__demoMode) break;
+      if (!window.__gateUnlocked) break;
       // إذا جاء طلب أولوية، حمّله أولاً قبل المتابعة
       if (_bgLoadPrioritySection) {
         var pri = _bgLoadPrioritySection;
@@ -3963,7 +3922,7 @@ async function loadExamDataAfterAuth() {
   // ✅ تحميل Mundlich مرة واحدة عند الدخول فقط — لا polling دوري
   // يتجدد فقط عند تحديث الصفحة أو الدخول من جديد
   setTimeout(function() {
-    if (!window.__gateUnlocked && !window.__demoMode) return;
+    if (!window.__gateUnlocked) return;
     fetchOneSection('mundlichdata').then(function(mddata) {
       if (mddata && (mddata.t1 || mddata.t2 || mddata.t3)) {
         try { localStorage.setItem(MD_KEY, JSON.stringify(mddata)); } catch(e) {}
@@ -3976,7 +3935,7 @@ async function loadExamDataAfterAuth() {
   // ✅ تحميل Schreiben مرة واحدة عند الدخول فقط — لا polling دوري
   // يتجدد فقط عند تحديث الصفحة أو الدخول من جديد
   setTimeout(function() {
-    if (!window.__gateUnlocked && !window.__demoMode) return;
+    if (!window.__gateUnlocked) return;
     fetchOneSection('swdata').then(function(swRaw) {
       if (swRaw && Object.keys(swRaw).length > 0) {
         remoteData.swdata = swRaw;
@@ -4011,45 +3970,8 @@ const _gateAttempts = (function() {
   };
 })();
 
-// ===== وضع التجربة (Demo Mode) =====
-window.__demoMode = false;
-const DEMO_FREE_LIMIT = 4; // عدد الاختبارات المجانية في كل قسم
 
-function startDemoMode() {
-  window.__demoMode = true;
-  window.__gateUnlocked = false;
-  document.getElementById('gate-overlay').style.display = 'none';
-  var banner = document.getElementById('demo-banner');
-  if (banner) { banner.style.display = 'flex'; }
-  loadExamDataAfterAuth();
-  notifLoadForUser && notifLoadForUser();
-  showToast('🔍 وضع التجربة — أول 4 اختبارات مفتوحة');
-}
 
-function exitDemoMode() {
-  window.__demoMode = false;
-  var banner = document.getElementById('demo-banner');
-  if (banner) banner.style.display = 'none';
-  document.getElementById('gate-overlay').style.display = 'flex';
-}
-
-// دالة مساعدة: هل العنصر في وضع التجربة مغلق؟
-function isDemoLocked(index) {
-  return window.__demoMode && index >= DEMO_FREE_LIMIT;
-}
-
-// دالة مساعدة: تُعيد HTML بطاقة مقفلة لعنصر
-function demoLockedItemHtml(num, name, meta) {
-  return '<div class="exam-list-item demo-locked-item" style="position:relative;">' +
-    '<div class="demo-lock-badge">🔒 مقفل</div>' +
-    '<div class="exam-list-left">' +
-      '<span class="exam-list-num" style="opacity:.35;">' + num + '</span>' +
-      '<div><div class="exam-list-name" style="opacity:.35;">' + name + '</div>' +
-      '<div class="exam-list-meta" style="opacity:.35;">' + meta + '</div></div>' +
-    '</div>' +
-    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="2" style="opacity:.3;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>' +
-  '</div>';
-}
 
 async function checkGate() {
   const input = document.getElementById('gate-input');
@@ -4657,7 +4579,7 @@ function showPage(id) {
     if (swPan) swPan.style.display = 'none';
   }
   // Lazy-load section data when user navigates to it for the first time
-  if (window.__gateUnlocked || window.__demoMode) {
+  if (window.__gateUnlocked) {
     if (['lv-teil1','lv-exam'].includes(id)) {
       _prioritizeSection('lv-t1'); _lazyLoadSection('lv-t1');
     }
@@ -4705,7 +4627,7 @@ function showPage(id) {
       var c = document.getElementById('hv1-cards-container');
       var cText = c ? c.innerHTML.trim() : '';
       var isLoading = cText === '' || cText.indexOf('جاري التحميل') !== -1;
-      if (c && isLoading && (window.__gateUnlocked || window.__demoMode)) {
+      if (c && isLoading && (window.__gateUnlocked)) {
         _lazyLoaded['hv-t1'] = false; _lazyLoading['hv-t1'] = false;
         _lazyLoadSection('hv-t1');
       }
@@ -4716,7 +4638,7 @@ function showPage(id) {
       var c = document.getElementById('hv2-cards-container');
       var cText = c ? c.innerHTML.trim() : '';
       var isLoading = cText === '' || cText.indexOf('جاري التحميل') !== -1;
-      if (c && isLoading && (window.__gateUnlocked || window.__demoMode)) {
+      if (c && isLoading && (window.__gateUnlocked)) {
         _lazyLoaded['hv-t2'] = false; _lazyLoading['hv-t2'] = false;
         _lazyLoadSection('hv-t2');
       }
@@ -4727,7 +4649,7 @@ function showPage(id) {
       var c = document.getElementById('hv3-cards-container');
       var cText = c ? c.innerHTML.trim() : '';
       var isLoading = cText === '' || cText.indexOf('جاري التحميل') !== -1;
-      if (c && isLoading && (window.__gateUnlocked || window.__demoMode)) {
+      if (c && isLoading && (window.__gateUnlocked)) {
         _lazyLoaded['hv-t3'] = false; _lazyLoading['hv-t3'] = false;
         _lazyLoadSection('hv-t3');
       }
@@ -4748,7 +4670,7 @@ function showPage(id) {
   if (id === 'mdt3-afkar') {
     afkarLoadAndRender();
   }
-  if (id === 'mundlich-teil1' && (window.__gateUnlocked || window.__demoMode)) {
+  if (id === 'mundlich-teil1' && (window.__gateUnlocked)) {
     fetchOneSection('mundlichdata').then(function(mddata) {
       if (mddata && (mddata.t1 || mddata.t2 || mddata.t3)) {
         try { localStorage.setItem(MD_KEY, JSON.stringify(mddata)); } catch(e) {}
@@ -4786,7 +4708,7 @@ const _validPages = new Set([
 ]);
 window.addEventListener('popstate', function(e) {
   var page = (e.state && e.state.page && _validPages.has(e.state.page)) ? e.state.page : 'home';
-  if (page !== 'home' && !window.__gateUnlocked && !window.__demoMode) {
+  if (page !== 'home' && !window.__gateUnlocked) {
     page = 'home';
     var gate = document.getElementById('gate-overlay');
     if (gate) gate.style.display = 'flex';
@@ -4840,9 +4762,6 @@ function renderTeil1List() {
           min-width:46px;letter-spacing:.03em;
         ">${score}/25</span>`
       : '';
-    if (isDemoLocked(idx)) {
-      return demoLockedItemHtml(String(ex.id).padStart(2,'0'), escHtml(ex.name), '5 Texte · 10 Überschriften');
-    }
     return `
     <a class="exam-list-item" onclick="openTeil1Exam(${ex.id})">
       <div class="exam-list-left">
@@ -5600,22 +5519,6 @@ async function swRenderGrid() {
   if (empty) empty.style.display = 'none';
   grid.style.display = 'flex';
   grid.innerHTML = arr.map(function(item, idx){
-    if (isDemoLocked(idx)) {
-      var num = String(idx + 1).padStart(2, '0');
-      return '<div style="' +
-        'background:var(--card);border:1px solid var(--border);border-radius:14px;' +
-        'padding:1.4rem 1.3rem 1.2rem;position:relative;overflow:hidden;opacity:.55;">' +
-        '<div style="position:absolute;top:50%;right:1.1rem;transform:translateY(-50%);' +
-          'background:var(--ink);color:var(--paper);font-size:.72rem;font-weight:700;' +
-          'padding:.3rem .75rem;border-radius:100px;display:flex;align-items:center;gap:.35rem;">🔒 مقفل</div>' +
-        '<div style="font-family:\'Playfair Display\',serif;font-size:1.7rem;font-weight:900;color:var(--border);line-height:1;margin-bottom:.5rem;">' + num + '</div>' +
-        (item.title ? '<div style="font-family:\'Playfair Display\',serif;font-size:1.05rem;font-weight:700;color:var(--muted);margin-bottom:.4rem;line-height:1.25;filter:blur(3px);">' + escHtml(item.title) + '</div>' : '') +
-        '<div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:.75rem;">' +
-          '<span style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">✍ Schreiben</span>' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>' +
-        '</div>' +
-      '</div>';
-    }
     var num = String(idx + 1).padStart(2, '0');
     // اقتطاع المعاينة — أول سطرين
     var preview = (item.content || '').split('\n').slice(0,2).join(' ').substring(0, 100);
@@ -6562,9 +6465,6 @@ function renderTeil2List() {
     const scoreBadge = score !== null
       ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:' + scoreColor(score) + ';color:white;font-family:\'DM Mono\',monospace;font-size:.68rem;font-weight:700;border-radius:100px;padding:.18rem .55rem;min-width:46px;">' + score + '/25</span>'
       : '';
-    if (isDemoLocked(idx)) {
-      return demoLockedItemHtml(String(ex.id).padStart(2,'0'), escHtml(ex.name), '1 Text \u00b7 5 Fragen');
-    }
     return '<a class="exam-list-item" onclick="openTeil2Exam(' + ex.id + ')">' +
       '<div class="exam-list-left">' +
         '<span class="exam-list-num">' + String(ex.id).padStart(2,'0') + '</span>' +
@@ -7287,9 +7187,6 @@ function renderTeil3List() {
     const scoreBadge = score !== null
       ? `<span style="display:inline-flex;align-items:center;justify-content:center;background:${scoreColor(score)};color:white;font-family:'DM Mono',monospace;font-size:.68rem;font-weight:700;border-radius:100px;padding:.18rem .55rem;min-width:46px;">${score}/25</span>`
       : '';
-    if (isDemoLocked(idx)) {
-      return demoLockedItemHtml(String(ex.id).padStart(2,'00'), escHtml(ex.name), '12 Texte · 10 Titel');
-    }
     return `<a class="exam-list-item" onclick="openTeil3Exam(${ex.id})">
       <div class="exam-list-left">
         <span class="exam-list-num">${String(ex.id).padStart(2,'0')}</span>
@@ -9367,9 +9264,6 @@ function renderSbList(teil) {
     const scoreBadge = score15 !== null
       ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:' + sbColor.bg + ';color:' + sbColor.text + ';font-family:\'DM Mono\',monospace;font-size:.68rem;font-weight:700;border-radius:100px;padding:.18rem .55rem;min-width:46px;">' + score15.toFixed(1).replace('.0','') + '/15</span>'
       : '';
-    if (isDemoLocked(idx)) {
-      return demoLockedItemHtml(String(ex.id).padStart(2,'00'), escHtml(ex.name), 'Sprachbausteine · Teil ' + teil);
-    }
     if (!hasContent) {
       return '<div class="exam-list-item" style="opacity:.5;cursor:default;">' +
         '<div class="exam-list-left">' +
@@ -9861,9 +9755,6 @@ function mdt2RenderList() {
     return;
   }
   container.innerHTML = exams.map(function(ex, idx) {
-    if (isDemoLocked(idx)) {
-      return demoLockedItemHtml(String(idx+1).padStart(2,'0'), _mdEsc(ex.name), 'Mündlich · Teil 2');
-    }
     return '<div class="exam-list-item" onclick="mdt2OpenExam(' + idx + ')">' +
       '<div class="exam-list-left">' +
         '<span class="exam-list-num">' + String(idx+1).padStart(2,'0') + '</span>' +
@@ -10525,9 +10416,6 @@ function mdt3RenderList() {
     return;
   }
   container.innerHTML = exams.map(function(ex, idx) {
-    if (isDemoLocked(idx)) {
-      return demoLockedItemHtml('0' + (idx + 1), _mdEsc(ex.name || 'اختبار'), 'Mündlich · Teil 3');
-    }
     return '<div class="exam-list-item" onclick="mdt3OpenExam(' + idx + ')">' +
       '<div class="exam-list-left">' +
         '<div class="exam-list-num">0' + (idx + 1) + '</div>' +
@@ -11207,7 +11095,7 @@ async function reorderExam(section, idx, dir) {
   var _orig = window[_fn];
   if(typeof _orig === 'function'){
     window[_fn] = function(){
-      if(!window.__gateUnlocked && !window.__demoMode){
+      if(!window.__gateUnlocked){
         console.warn('Unauthorized access attempt');
         location.reload();
         return;
