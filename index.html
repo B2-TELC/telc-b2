@@ -11,7 +11,7 @@
 <!-- ✅ [5] CSP: تمنع تنفيذ سكريبتات خارجية غير موثوقة -->
 <!-- ⚠️ unsafe-inline مطلوب بسبب الـ inline scripts والـ onclick attrs — لا يمكن إزالته بدون إعادة هيكلة كاملة -->
 <!-- ✅ تم تقوية الـ CSP بإضافة: object-src, frame-ancestors, base-uri, upgrade-insecure-requests -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; manifest-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -306,6 +306,8 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     <button onclick="startDemoMode()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;cursor:pointer;padding:.3rem .9rem;margin-bottom:.4rem;transition:color .2s,border-color .2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">🔍 تجربة الموقع</button>
     <br>
     <button class="gate-admin-link" onclick="openAdminGate()">Admin-Bereich →</button>
+    <br>
+    <button id="pwa-install-btn" onclick="installPWA()" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:100px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:400;cursor:pointer;padding:.3rem .9rem;margin-top:.6rem;transition:color .2s,border-color .2s;" onmouseover="this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">📲 تحميل الموقع كتطبيق</button>
     <div class="gate-whatsapp">
       Kein Code? Kontakt: <a href="https://www.facebook.com/profile.php?id=61589228999977" target="_blank" rel="noopener noreferrer"><svg width="16" height="16" viewBox="0 0 24 24" fill="url(#msng-grad)" style="vertical-align:middle"><defs><linearGradient id="msng-grad" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#0078ff"/><stop offset="100%" style="stop-color:#a334fa"/></linearGradient></defs><path d="M12 0C5.373 0 0 5.145 0 11.49c0 3.63 1.792 6.865 4.595 8.986V24l4.214-2.313A13.23 13.23 0 0012 21.98c6.627 0 12-5.145 12-11.49S18.627 0 12 0zm1.194 15.478l-3.054-3.254-5.964 3.254 6.561-6.966 3.127 3.254 5.891-3.254-6.561 6.966z"/></svg> B2-TELC-TUNISIE</a>
     </div>
@@ -334,6 +336,136 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     <button class="gate-admin-link" onclick="document.getElementById('admin-gate-overlay').style.display='none';document.getElementById('gate-overlay').style.display='flex';">← Zurück</button>
   </div>
 </div>
+<!-- ===== PWA INSTALL: modal + منطق التثبيت ===== -->
+<div class="gate-overlay" id="pwa-install-overlay" style="display:none;z-index:10500;">
+  <div class="gate-box" style="direction:rtl;text-align:right;max-width:340px;">
+    <h2 class="gate-title" style="text-align:center;">📲 تحميل الموقع كتطبيق</h2>
+    <div id="pwa-install-steps" style="font-size:.85rem;line-height:1.95;color:var(--ink);margin-bottom:1.2rem;"></div>
+    <button class="gate-btn" onclick="document.getElementById('pwa-install-overlay').style.display='none';" style="margin-bottom:0;">فهمت 👍</button>
+  </div>
+</div>
+<script>
+(function(){
+  // --- توليد أيقونة بسيطة (B2) بدون الحاجة لملف صورة خارجي ---
+  function pwaMakeIcon(size){
+    var c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    var ctx = c.getContext('2d');
+    var r = size * 0.18;
+    ctx.fillStyle = '#c8602a';
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold ' + Math.round(size * 0.42) + 'px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('B2', size / 2, size * 0.54);
+    return c.toDataURL('image/png');
+  }
+
+  // --- بناء manifest.json ديناميكياً عبر Blob (بدون ملف خارجي) ---
+  function pwaSetupManifest(){
+    try {
+      var icon192 = pwaMakeIcon(192);
+      var icon512 = pwaMakeIcon(512);
+      var manifest = {
+        name: 'TELC-PRO — تحضير امتحان الألمانية B2',
+        short_name: 'TELC-PRO',
+        start_url: './',
+        scope: './',
+        display: 'standalone',
+        background_color: '#f5f0e8',
+        theme_color: '#c8602a',
+        orientation: 'portrait',
+        icons: [
+          { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      var url = URL.createObjectURL(blob);
+      var link = document.querySelector('link[rel="manifest"]');
+      if(!link){ link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
+      link.href = url;
+
+      var appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+      if(!appleIcon){ appleIcon = document.createElement('link'); appleIcon.rel = 'apple-touch-icon'; document.head.appendChild(appleIcon); }
+      appleIcon.href = icon192;
+    } catch(e){}
+  }
+  pwaSetupManifest();
+
+  // --- اكتشاف الحالة ---
+  window.__pwaDeferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    window.__pwaDeferredPrompt = e;
+  });
+  window.addEventListener('appinstalled', function(){
+    window.__pwaDeferredPrompt = null;
+    var btn = document.getElementById('pwa-install-btn');
+    if(btn) btn.style.display = 'none';
+    if(typeof showToast === 'function') showToast('تم تثبيت التطبيق بنجاح ✅');
+  });
+
+  function pwaIsStandalone(){
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  }
+  function pwaIsInAppBrowser(){
+    var ua = navigator.userAgent || '';
+    return /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Snapchat/i.test(ua);
+  }
+  function pwaIsIOS(){
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    if(pwaIsStandalone()){
+      var btn = document.getElementById('pwa-install-btn');
+      if(btn) btn.style.display = 'none';
+    }
+  });
+
+  function pwaShowInstructions(html){
+    document.getElementById('pwa-install-steps').innerHTML = html;
+    document.getElementById('pwa-install-overlay').style.display = 'flex';
+  }
+
+  window.installPWA = async function(){
+    if(pwaIsInAppBrowser()){
+      pwaShowInstructions('<p>⚠️ أنت فاتح الموقع من داخل تطبيق آخر (فيسبوك / إنستغرام...)، وهذا لا يسمح بتثبيت أي موقع كتطبيق.</p><p>افتح الموقع في متصفح <b>Chrome</b> أو <b>Safari</b> العادي (في الأعلى أو الأسفل، اختار "فتح في المتصفح")، وبعدها رجع جرب من جديد.</p>');
+      return;
+    }
+    if(window.__pwaDeferredPrompt){
+      var promptEvent = window.__pwaDeferredPrompt;
+      window.__pwaDeferredPrompt = null;
+      promptEvent.prompt();
+      try {
+        var choice = await promptEvent.userChoice;
+        if(choice && choice.outcome === 'accepted' && typeof showToast === 'function'){
+          showToast('🎉 التطبيق قيد التثبيت...');
+        }
+      } catch(e){}
+      return;
+    }
+    if(pwaIsIOS()){
+      pwaShowInstructions('<p>للتثبيت على آيفون / آيباد (Safari):</p><p>1️⃣ اضغط على زر <b>المشاركة</b> 🔗 في أسفل (أو أعلى) المتصفح</p><p>2️⃣ مرر تحت واختار <b>"Auf Home-Bildschirm"</b> / "إضافة إلى الشاشة الرئيسية"</p><p>3️⃣ اضغط <b>"إضافة"</b> ✅</p><p style="opacity:.7;font-size:.78rem;">ملاحظة: هذا الخيار موجود فقط في Safari، ماهوش موجود في Chrome على آيفون.</p>');
+      return;
+    }
+    pwaShowInstructions('<p>للتثبيت:</p><p>اضغط على أيقونة <b>⋮</b> (القائمة) فوق في المتصفح، وبعدها اختار <b>"تثبيت التطبيق"</b> أو <b>"إضافة إلى الشاشة الرئيسية"</b>.</p><p style="opacity:.7;font-size:.78rem;">إذا الخيار ماظهرلكش، جرب من Chrome أو Edge.</p>');
+  };
+})();
+</script>
 <div id="page-home" class="page active">
   <div style="border-bottom:1px solid var(--border);padding:0.85rem 1.75rem;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
     <div style="display:flex;align-items:center;gap:0.75rem;">
