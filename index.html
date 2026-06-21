@@ -12211,7 +12211,14 @@ async function afkarMoveGroup(id, direction) {
     if (_currentAudio) {
       _currentAudio.onended = null;
       _currentAudio.onerror = null;
+      _currentAudio.onplay = null;
       _currentAudio.pause();
+      // لا يكفي pause() لإخفاء إشعار التشغيل الذي يولّده كروم تلقائياً —
+      // يجب فصل المصدر تماماً حتى يفهم المتصفح أنه لا يوجد صوت نشط ويُخفي الإشعار
+      try {
+        _currentAudio.removeAttribute('src');
+        _currentAudio.load();
+      } catch(e) {}
       _currentAudio = null;
     }
   }
