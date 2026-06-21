@@ -11871,7 +11871,7 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Speak then enable mic ──────────────────────────────────────
   function aiSpeakThenEnableMic(text) {
-    aiSetHint('🔊 Frau Müller تتكلم...');
+    aiSetHint('⏳ جارٍ تحميل الصوت...');
     var micBtn = document.getElementById('ai-mic-btn');
     if (micBtn) micBtn.disabled = true;
     var myCallbackId = ++_speakCallbackId;
@@ -12234,6 +12234,7 @@ async function afkarMoveGroup(id, direction) {
     if (_aiMuted) { if (onEnd) onEnd(); return; }
     var cleanText = text.replace(/💡\s*Feedback:[^\n]*/gi, '').trim();
     if (!cleanText) { if (onEnd) onEnd(); return; }
+    aiSetHint('⏳ جارٍ تحميل الصوت...');
 
     var token = (window.__getToken ? window.__getToken() : null) || '';
     fetch(WORKER_URL + '/api/tts', {
@@ -12423,11 +12424,30 @@ async function afkarMoveGroup(id, direction) {
     if (el) el.textContent = text;
   }
 
+  // ── أوقف الصوت إن غادر المستخدم التطبيق/المتصفح بالكامل (تبديل تطبيقات، قفل الشاشة...) ──
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) aiStopSpeaking();
+  });
+
   // ── Init on page show ──────────────────────────────────────────
   var _aiInited = false;
   var origShowPage = window.showPage;
   window.showPage = function(id) {
+    // هل كنا في صفحة المحادثة قبل هذا التنقل؟ (نتحقق قبل تبديل الصفحات)
+    var aiPageEl = document.getElementById('page-ai-chat');
+    var wasOnAiChat = !!(aiPageEl && aiPageEl.classList.contains('active'));
+
     origShowPage(id);
+
+    // المستخدم غادر صفحة "تدرب مع ممتحنة AI" — أوقف الصوت والمايك فوراً
+    if (wasOnAiChat && id !== 'ai-chat') {
+      _speakCallbackId++; // ألغِ أي callback معلّق (تفعيل المايك بعد انتهاء الصوت)
+      aiStopSpeaking(); // أوقف صوت Frau Müller وألغِ أي طلب TTS لم يكتمل
+      if (_mediaRecorder || _micStream) _aiCleanupRecorder(); // أغلق المايك إن كان مفتوحاً
+      _isRecording = false;
+      _micStarting = false;
+    }
+
     if (id === 'ai-chat' && !_aiInited) {
       _aiInited = true;
     }
