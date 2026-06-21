@@ -12085,6 +12085,10 @@ async function afkarMoveGroup(id, direction) {
     }
   }
 
+  var _recordStartTs = 0;
+  var _discardNextRecording = false;
+  var MIN_RECORD_MS = 600; // أقل مدة تسجيل مقبولة — أقصر من هذا يُهمَل بدل إرساله لـ Whisper
+
   function aiStartRecording() {
     if (_micStarting || _isRecording) return; // سباق: نقرة ثانية وصلت قبل انتهاء بدء التسجيل الأول
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -12092,6 +12096,7 @@ async function afkarMoveGroup(id, direction) {
       return;
     }
     _micStarting = true;
+    _discardNextRecording = false;
     _aiCleanupRecorder(); // احترازي: أغلق أي تسجيل/مايك سابق لم يُغلق بشكل صحيح
     var micBtn = document.getElementById('ai-mic-btn');
     if (micBtn) micBtn.disabled = true; // عطّل الزر أثناء طلب إذن المايك لمنع نقرات متكررة
@@ -12115,6 +12120,15 @@ async function afkarMoveGroup(id, direction) {
         _mediaRecorder.onstop = function() {
           stream.getTracks().forEach(function(t) { t.stop(); });
           if (_micStream === stream) _micStream = null;
+          // تسجيل قصير جداً (ضغطة سريعة عن طريق الخطأ) — تجاهله تماماً ولا ترسله لـ Whisper
+          // (التسجيلات القصيرة جداً تجعل Whisper يهلوس نصاً عشوائياً قد يُفهم كرد فعلي وينهي الجلسة)
+          if (_discardNextRecording) {
+            _discardNextRecording = false;
+            _audioChunks = [];
+            aiSetHint('🎤 اضغط مطولاً وتكلم لفترة أطول قليلاً');
+            if (micBtn) micBtn.disabled = false;
+            return;
+          }
           if (_audioChunks.length === 0) {
             aiSetHint('❌ لم يُسمع كلام — حاول مرة أخرى');
             if (micBtn) micBtn.disabled = false;
@@ -12126,6 +12140,7 @@ async function afkarMoveGroup(id, direction) {
         };
 
         _mediaRecorder.start();
+        _recordStartTs = Date.now();
         _isRecording = true;
         if (micBtn) micBtn.disabled = false; // فعّل الزر الآن للسماح بالضغط لإيقاف التسجيل
         aiSetMicState('recording');
@@ -12139,14 +12154,16 @@ async function afkarMoveGroup(id, direction) {
   }
 
   function aiStopRecording() {
+    // تسجيل أقصر من الحد الأدنى (ضغطة وإفلات سريعة) — لا تُرسله لـ Whisper كي لا "يهلوس" نصاً عشوائياً
+    _discardNextRecording = (Date.now() - _recordStartTs) < MIN_RECORD_MS;
     if (_mediaRecorder && _mediaRecorder.state !== 'inactive') {
       _mediaRecorder.stop();
     }
     _isRecording = false;
     aiSetMicState('idle');
     var micBtn = document.getElementById('ai-mic-btn');
-    if (micBtn) micBtn.disabled = true; // معطّل أثناء تحليل الصوت — يُعاد تفعيله بعد رد Whisper
-    aiSetHint('⏳ جارٍ تحليل كلامك...');
+    if (micBtn) micBtn.disabled = true; // معطّل أثناء تحليل الصوت — يُعاد تفعيله بعد رد Whisper (أو فوراً إن أُهمل التسجيل)
+    if (!_discardNextRecording) aiSetHint('⏳ جارٍ تحليل كلامك...');
   }
 
   function aiSendToWhisper(blob) {
