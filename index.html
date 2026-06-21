@@ -172,6 +172,8 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
 .ai-mic-big:active{transform:scale(.95);}
 .ai-mic-big.recording{background:#e53935;animation:micPulse 1s infinite;box-shadow:0 4px 20px rgba(229,57,53,.45);}
 .ai-mic-big.processing{background:#b35424;cursor:wait;opacity:.8;}
+.ai-mic-big:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+.ai-mic-big:disabled:hover{transform:none;background:var(--accent);}
 @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(229,57,53,.5)}50%{box-shadow:0 0 0 14px rgba(229,57,53,0)}}
 
 @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
@@ -11801,10 +11803,9 @@ async function afkarMoveGroup(id, direction) {
     _speakCallbackId++;
     aiStopSpeaking(); // أوقف الصوت الحالي وألغِ أي طلب TTS لم يكتمل بعد
     // أوقف التسجيل إن كان جارياً مع منع إرسال blob قديم
-    if (_mediaRecorder && _mediaRecorder.state !== "inactive") {
-      try { _mediaRecorder.onstop = null; _mediaRecorder.stop(); } catch(e) {}
-    }
+    _aiCleanupRecorder();
     _isRecording = false;
+    _micStarting = false;
     _aiLoading = false;
     // أعد ضبط حالة الجلسة
     _aiHistory = [];
@@ -12047,29 +12048,57 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Mic toggle ─────────────────────────────────────────────────
   window.aiToggleMic = function() {
-    if (_aiLoading || _sessionEnded) return;
+    if (_aiLoading || _sessionEnded || _micStarting) return;
+    var micBtn = document.getElementById('ai-mic-btn');
+    // حماية إضافية: بعض متصفحات الأندرويد قد تُطلق حدث click حتى لو كان الزر
+    // معطّلاً (disabled) إن بدأت لمسة الإصبع قبل تعطيله مباشرة (سباق توقيت).
+    // هذا الفحص اليدوي يمنع تنفيذ أي تسجيل/مقاطعة في تلك الحالة.
+    if (micBtn && micBtn.disabled) return;
     if (_isRecording) {
       aiStopRecording();
     } else {
       // أوقف صوت الـ AI فوراً قبل فتح المايك لمنع التقاط صوته
       _speakCallbackId++; // ألغِ أي callback معلّق (مثل تفعيل المايك بعد انتهاء الصوت)
       aiStopSpeaking(); // أوقف الصوت الحالي وألغِ أي طلب TTS لم يكتمل بعد
-      var micBtn = document.getElementById('ai-mic-btn');
-      if (micBtn) micBtn.disabled = false; // تأكد أن الزر مفعّل قبل التسجيل
       aiStartRecording();
     }
   };
 
   var _mediaRecorder = null;
   var _audioChunks = [];
+  var _micStream = null;
+  var _micStarting = false; // يمنع بدء تسجيلين متوازيين بسبب نقرة مزدوجة/touch+click على نفس الزر
+
+  // ينظّف أي تسجيل/ستريم سابق عالق (مثلاً من سباق توقيت سابق) قبل بدء تسجيل جديد
+  function _aiCleanupRecorder() {
+    if (_mediaRecorder) {
+      try {
+        _mediaRecorder.ondataavailable = null;
+        _mediaRecorder.onstop = null;
+        if (_mediaRecorder.state !== 'inactive') _mediaRecorder.stop();
+      } catch(e) {}
+      _mediaRecorder = null;
+    }
+    if (_micStream) {
+      try { _micStream.getTracks().forEach(function(t) { t.stop(); }); } catch(e) {}
+      _micStream = null;
+    }
+  }
 
   function aiStartRecording() {
+    if (_micStarting || _isRecording) return; // سباق: نقرة ثانية وصلت قبل انتهاء بدء التسجيل الأول
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       aiSetHint('❌ المتصفح لا يدعم الميكروفون');
       return;
     }
+    _micStarting = true;
+    _aiCleanupRecorder(); // احترازي: أغلق أي تسجيل/مايك سابق لم يُغلق بشكل صحيح
+    var micBtn = document.getElementById('ai-mic-btn');
+    if (micBtn) micBtn.disabled = true; // عطّل الزر أثناء طلب إذن المايك لمنع نقرات متكررة
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(function(stream) {
+        _micStarting = false;
+        _micStream = stream;
         _audioChunks = [];
         var mimeType = 'audio/webm';
         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -12085,8 +12114,10 @@ async function afkarMoveGroup(id, direction) {
 
         _mediaRecorder.onstop = function() {
           stream.getTracks().forEach(function(t) { t.stop(); });
+          if (_micStream === stream) _micStream = null;
           if (_audioChunks.length === 0) {
             aiSetHint('❌ لم يُسمع كلام — حاول مرة أخرى');
+            if (micBtn) micBtn.disabled = false;
             return;
           }
           var blob = new Blob(_audioChunks, { type: mimeType });
@@ -12096,10 +12127,13 @@ async function afkarMoveGroup(id, direction) {
 
         _mediaRecorder.start();
         _isRecording = true;
+        if (micBtn) micBtn.disabled = false; // فعّل الزر الآن للسماح بالضغط لإيقاف التسجيل
         aiSetMicState('recording');
         aiSetHint('🔴 جارٍ الاستماع... تكلم ثم اضغط للإيقاف');
       })
       .catch(function() {
+        _micStarting = false;
+        if (micBtn) micBtn.disabled = false;
         aiSetHint('❌ يجب السماح للموقع باستخدام المايك');
       });
   }
@@ -12110,6 +12144,8 @@ async function afkarMoveGroup(id, direction) {
     }
     _isRecording = false;
     aiSetMicState('idle');
+    var micBtn = document.getElementById('ai-mic-btn');
+    if (micBtn) micBtn.disabled = true; // معطّل أثناء تحليل الصوت — يُعاد تفعيله بعد رد Whisper
     aiSetHint('⏳ جارٍ تحليل كلامك...');
   }
 
@@ -12136,14 +12172,19 @@ async function afkarMoveGroup(id, direction) {
     .then(function(d) {
       if (d && d.text && d.text.trim()) {
         aiSetHint('✅ تم التعرف على كلامك...');
+        // الزر يبقى معطّلاً هنا — aiSubmitUserText سيتولى حالته أثناء تفكير Frau Müller
         setTimeout(function() { aiSubmitUserText(d.text.trim()); }, 200);
       } else {
         aiSetHint('❌ لم يُسمع كلام واضح — حاول مرة أخرى');
+        var micBtn = document.getElementById('ai-mic-btn');
+        if (micBtn) micBtn.disabled = false;
       }
     })
     .catch(function(e) {
       console.error('Whisper error:', e);
       aiSetHint('❌ خطأ في تحليل الصوت: ' + (e && e.message ? e.message : 'غير معروف') + ' — حاول مرة أخرى');
+      var micBtn = document.getElementById('ai-mic-btn');
+      if (micBtn) micBtn.disabled = false;
     });
   }
 
