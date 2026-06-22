@@ -312,12 +312,12 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
       <div class="gate-logo" style="margin-bottom:0;">B2</div>
     </div>
     <h2 class="gate-title">TELC-PRO</h2>
-    <p class="gate-desc">Bitte geben Sie Ihren Zugangscode ein. Jeder Code gewährt 7 Tage unbegrenzten Zugang.</p>
+    <p class="gate-desc">Bitte geben Sie Ihren Zugangscode ein.</p>
     <input type="text" id="gate-input" class="gate-input" placeholder="Zugangscode" maxlength="20"
       autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="text"
       onkeydown="if(event.key==='Enter') checkGate()">
     <div class="gate-error" id="gate-error">Ungültiger oder abgelaufener Code.</div>
-    <div id="gate-detail" style="display:none;direction:rtl;text-align:right;background:#fff8f0;border:1px solid #f0d8c8;border-radius:8px;padding:.7rem .9rem;margin-top:.1rem;margin-bottom:.5rem;font-size:.8rem;line-height:1.7;color:#7a4020;font-family:'DM Sans',sans-serif;"></div>
+
     <button class="gate-btn" onclick="checkGate()">Zugang freischalten</button>
 
     <button class="gate-admin-link" onclick="openAdminGate()">Admin-Bereich →</button>
@@ -508,12 +508,12 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
       <div class="cat-num">01</div>
       <div class="cat-kicker">TEIL 1</div>
       <h1 class="cat-title">Teil 1 — Überschriften zuordnen</h1>
-      <div style="display:inline-flex;align-items:flex-start;gap:.6rem;background:var(--accent-light);border:1px solid #e8c4b0;border-radius:8px;padding:.6rem 1rem;margin-bottom:.5rem;max-width:480px;direction:rtl;text-align:right;"><span style="font-size:1rem;margin-top:.1rem;">💡</span><div><span style="font-size:.65rem;font-weight:700;color:var(--accent);letter-spacing:.05em;display:block;margin-bottom:.2rem;">نصيحة من ذهب</span><span style="font-size:.82rem;color:var(--ink);line-height:1.6;">التايل لول — ديما قمر كلمة من العنوان بكلمة من النص، هكاكا كي تقرا الكلمة تتفكر النص طول.</span></div></div>
+      
     </div>
   </div>
   <div class="content-area">
     <div style="padding:.25rem 0 .25rem;display:flex;justify-content:flex-end;">
-      <button onclick="randomExam('lv1')" class="random-exam-btn">
+      <button onclick="randomExam('lv1')" style="display:inline-flex;align-items:center;gap:.55rem;background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:.75rem 1.4rem;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s,transform .15s;letter-spacing:.02em;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
         اختبار عشوائي
       </button>
@@ -574,12 +574,12 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
       <div class="cat-num">02</div>
       <div class="cat-kicker">TEIL 2</div>
       <h1 class="cat-title">Teil 2 — Leseverstehen</h1>
-      <div style="display:inline-flex;align-items:flex-start;gap:.6rem;background:var(--accent-light);border:1px solid #e8c4b0;border-radius:8px;padding:.6rem 1rem;margin-bottom:.5rem;max-width:480px;direction:rtl;text-align:right;"><span style="font-size:1rem;margin-top:.1rem;">💡</span><div><span style="font-size:.65rem;font-weight:700;color:var(--accent);letter-spacing:.05em;display:block;margin-bottom:.2rem;">نصيحة من ذهب</span><span style="font-size:.82rem;color:var(--ink);line-height:1.6;">التايل الثاني — اقرا وأفهم كان الأجبات الصحاح، هكاكا بعد كي تجي تخدم تحس روحك الجملة هاذيكا قريتها قبل وفاهمها، معناها طول الإجابة هذيكا هي الصحيحة.</span></div></div>
+      
     </div>
   </div>
   <div class="content-area">
     <div style="padding:.25rem 0 .25rem;display:flex;justify-content:flex-end;">
-      <button onclick="randomExam('lv2')" class="random-exam-btn">
+      <button onclick="randomExam('lv2')" style="display:inline-flex;align-items:center;gap:.55rem;background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:.75rem 1.4rem;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s,transform .15s;letter-spacing:.02em;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
         اختبار عشوائي
       </button>
@@ -627,15 +627,9 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     </div>
   </div>
   <div class="content-area">
-    <div style="display:inline-flex;align-items:flex-start;gap:.6rem;background:var(--accent-light);border:1px solid #e8c4b0;border-radius:8px;padding:.75rem 1rem;margin-bottom:.85rem;width:100%;direction:rtl;text-align:right;box-sizing:border-box;">
-      <span style="font-size:1.1rem;margin-top:.1rem;flex-shrink:0;">💡</span>
-      <div>
-        <span style="font-size:.65rem;font-weight:700;color:var(--accent);letter-spacing:.05em;display:block;margin-bottom:.3rem;">نصيحة من ذهب</span>
-        <span style="font-size:.82rem;color:var(--ink);line-height:1.65;">تايل ثالث تنجم تولي باهي فيه كان كي تخدمو برشا مرات ، ديما اخدم ديما اخدم تو تكبتي كل شي بالوقت.</span>
-      </div>
-    </div>
+    
     <div style="padding:.25rem 0 .25rem;display:flex;justify-content:flex-end;">
-      <button onclick="randomExam('lv3')" class="random-exam-btn">
+      <button onclick="randomExam('lv3')" style="display:inline-flex;align-items:center;gap:.55rem;background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:.75rem 1.4rem;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s,transform .15s;letter-spacing:.02em;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
         اختبار عشوائي
       </button>
@@ -1521,7 +1515,7 @@ applyHv3AdminData();</script>
   </div>
   <div class="content-area">
     <div style="padding:.25rem 0 .25rem;display:flex;justify-content:flex-end;">
-      <button onclick="randomExam('sb1')" class="random-exam-btn">
+      <button onclick="randomExam('sb1')" style="display:inline-flex;align-items:center;gap:.55rem;background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:.75rem 1.4rem;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s,transform .15s;letter-spacing:.02em;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
         اختبار عشوائي
       </button>
@@ -1543,7 +1537,7 @@ applyHv3AdminData();</script>
   </div>
   <div class="content-area">
     <div style="padding:.25rem 0 .25rem;display:flex;justify-content:flex-end;">
-      <button onclick="randomExam('sb2')" class="random-exam-btn">
+      <button onclick="randomExam('sb2')" style="display:inline-flex;align-items:center;gap:.55rem;background:var(--ink);color:var(--paper);border:none;border-radius:10px;padding:.75rem 1.4rem;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s,transform .15s;letter-spacing:.02em;" onmouseover="this.style.background='var(--accent)'" onmouseout="this.style.background='var(--ink)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
         اختبار عشوائي
       </button>
@@ -3891,8 +3885,6 @@ async function checkGate() {
   if (!input || !err) return;
   const val = input.value.trim().replace(/\s+/g, '').toUpperCase();
   err.style.display = 'none';
-  var _detail = document.getElementById('gate-detail');
-  if (_detail) _detail.style.display = 'none';
   // ✅ تحقق من rate limiting
   const rl = _gateAttempts.check();
   if (rl.locked) {
@@ -3973,39 +3965,33 @@ async function checkGate() {
     loadExamDataAfterAuth();
     notifLoadForUser();
   } catch(e) {
-    var detail = document.getElementById('gate-detail');
+    
     if (detail) detail.style.display = 'none';
-    var detailMsg = '';
     if (e.type === 'inactive') {
       err.textContent = 'Dieser Code ist deaktiviert.';
-      detailMsg = '⚠️ هذا الكود تم تعطيله من طرف الأدمن. تواصل معه للحصول على كود جديد.';
     } else if (e.type === 'expired') {
       err.textContent = 'Dieser Code ist abgelaufen.';
-      detailMsg = '⏰ انتهت صلاحية هذا الكود (7 أيام). تواصل مع الأدمن للتجديد أو للحصول على كود جديد.';
     } else if (e.type === 'timeout') {
       err.textContent = 'Verbindung zu langsam. Bitte erneut versuchen.';
-      detailMsg = '🌐 الاتصال بالسيرفر استغرق وقتاً طويلاً. تأكد من أن الإنترنت يعمل بشكل جيد ثم حاول مجدداً.';
       if(btn){btn.disabled=false;btn.textContent='Zugang freischalten';}
       err.style.display = 'block';
-      if(detail){ detail.textContent = detailMsg; detail.style.display = 'block'; }
+      
       input.classList.add('error');
       setTimeout(() => input.classList.remove('error'), 400);
       return;
     } else if (e.type === 'network') {
       err.textContent = 'Netzwerkfehler. Bitte Internetverbindung prüfen.';
-      detailMsg = '📡 لا يوجد اتصال بالإنترنت أو السيرفر غير متوفر حالياً. تحقق من اتصالك وأعد المحاولة.';
       if(btn){btn.disabled=false;btn.textContent='Zugang freischalten';}
       err.style.display = 'block';
-      if(detail){ detail.textContent = detailMsg; detail.style.display = 'block'; }
+      
       input.classList.add('error');
       setTimeout(() => input.classList.remove('error'), 400);
       return;
     } else {
       err.textContent = 'Ungültiger Code. Bitte versuchen Sie es erneut.';
-      detailMsg = '❌ الكود الذي أدخلته غير صحيح. تأكد من الكود جيداً (الأحرف والأرقام) وحاول مرة أخرى.';
     }
     err.style.display = 'block';
-    if(detail){ detail.textContent = detailMsg; detail.style.display = 'block'; }
+    
     input.classList.add('error');
     setTimeout(() => input.classList.remove('error'), 400);
     _gateAttempts.fail(); // ✅ سجّل المحاولة الفاشلة
