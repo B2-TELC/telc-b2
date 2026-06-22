@@ -14,6 +14,23 @@
 <!-- ⚠️ unsafe-inline مطلوب بسبب الـ inline scripts والـ onclick attrs — لا يمكن إزالته بدون إعادة هيكلة كاملة -->
 <!-- ✅ تم تقوية الـ CSP بإضافة: object-src, frame-ancestors, base-uri, upgrade-insecure-requests -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://youglish.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.firebaseio.com https://*.firebasedatabase.app https://firebasestorage.googleapis.com https://*.firebasestorage.app https://2-telc-2-api.b2-telc-tn.workers.dev https://translate.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://youglish.com; img-src 'self' data: https:; media-src 'self' https: data: blob:; font-src 'self' https://fonts.gstatic.com; frame-src https://youglish.com https://www.youtube.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests;">
+<script>
+// 🔁 فتح تلقائي في Chrome عند الدخول من فيسبوك/إنستغرام المدمج (أندرويد فقط)
+(function(){
+  try {
+    var ua = navigator.userAgent || '';
+    var isInAppBrowser = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Snapchat/i.test(ua);
+    var isAndroid = /Android/i.test(ua);
+    if (isInAppBrowser && isAndroid && !sessionStorage.getItem('fbAutoRedirectTried')) {
+      sessionStorage.setItem('fbAutoRedirectTried', '1');
+      var target = location.href.replace(/^https?:\/\//i, '');
+      setTimeout(function(){
+        location.href = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;end';
+      }, 200);
+    }
+  } catch(e){}
+})();
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
