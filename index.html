@@ -4483,6 +4483,10 @@ let _suppressPush = false;
 function showPage(id) {
   if (!id || !document.getElementById('page-' + id)) { id = 'home'; }
   if (typeof lvCloseAllDropdowns === 'function') lvCloseAllDropdowns();
+  // إيقاف جميع التسجيلات الصوتية عند مغادرة صفحات Hörverstehen
+  document.querySelectorAll('.page.active audio').forEach(function(a) {
+    try { a.pause(); a.removeAttribute('src'); a.load(); } catch(e) {}
+  });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id)?.classList.add('active');
   window.scrollTo(0, 0);
