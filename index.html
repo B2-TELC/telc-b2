@@ -1124,7 +1124,13 @@ function buildHv1Card(exam) {
     var _kw1 = (exam.keywords && exam.keywords[i-1]) ? exam.keywords[i-1] : '';
     var _r1 = _kw1 ? { html: highlightKeywords(exam.sentences[i-1]||'', _kw1), found: false } : highlightTitleInSentence(exam.sentences[i-1]||'', exam.title||'', hv1TitleHighlighted);
     if (_r1.found) hv1TitleHighlighted = true;
-    html += '<td>' + i + '. ' + _r1.html + '</td>';
+    var _sentId = 'hv1-sent-' + exam.id + '-' + i;
+    html += '<td><div style="display:flex;align-items:flex-start;gap:.3rem;"><span id="' + _sentId + '">' + i + '. ' + _r1.html + '</span>'
+      + '<button onclick="hvTranslate(this,\'' + _sentId + '\')" style="display:inline-flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;padding:.15rem;opacity:.5;flex-shrink:0;margin-top:.1rem;" title="ترجمة">'
+      + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>'
+      + '</button></div>'
+      + '<div id="' + _sentId + '-tr" style="display:none;direction:rtl;text-align:right;font-size:.76rem;color:#7a4020;background:#f0ddd2;border-radius:5px;padding:.2rem .45rem;margin-top:.2rem;line-height:1.6;"></div>'
+      + '</td>';
     html += '</tr>';
   }
   html += '</tbody></table>';
@@ -1134,6 +1140,21 @@ function buildHv1Card(exam) {
   html += '<span class="hv1-result-msg" id="hv1-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
+}
+
+function hvTranslate(btn, sentId) {
+  var spanEl = document.getElementById(sentId);
+  var trEl = document.getElementById(sentId + '-tr');
+  if (!spanEl || !trEl) return;
+  if (trEl.style.display === 'block') { trEl.style.display = 'none'; btn.style.opacity = '.5'; return; }
+  var text = spanEl.innerText || spanEl.textContent;
+  btn.style.opacity = '1';
+  trEl.style.display = 'block';
+  trEl.textContent = '...';
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=de&tl=ar&dt=t&q=' + encodeURIComponent(text);
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    trEl.textContent = d[0].map(function(x){return x[0];}).join('');
+  }).catch(function(){ trEl.textContent = 'خطأ في الترجمة'; });
 }
 applyHv1AdminData();</script>
   </div>
