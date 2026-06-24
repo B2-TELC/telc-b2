@@ -1706,6 +1706,14 @@ applyHv3AdminData();</script>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
           <h3 style="margin:0;">الأكواد الحالية</h3>
         </div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.75rem;flex-wrap:wrap;background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:.6rem .75rem;">
+          <span style="font-size:.8rem;font-weight:600;color:var(--ink);">🎙️ منح كل الأكواد الحالية (دفعة واحدة):</span>
+          <input type="number" id="bulk-ai-sessions-input" min="0" max="999" value="100"
+            style="width:55px;border:1px solid var(--border);border-radius:4px;padding:.25rem .4rem;font-size:.85rem;font-weight:700;color:var(--accent);text-align:center;">
+          <span style="font-size:.78rem;color:var(--muted);">جلسة</span>
+          <button class="btn-sm" onclick="bulkSetAiSessions()">تطبيق على الجميع</button>
+        </div>
+        <p class="admin-note">مفيد للأكواد القديمة التي أُنشئت قبل إضافة ميزة جلسات AI (حصتها 0 افتراضياً للأمان).</p>
         <div style="overflow-x:auto;margin-top:.75rem;">
           <table class="hv1-table" style="width:100%;font-size:.82rem;">
             <thead>
@@ -2536,6 +2544,7 @@ applyHv3AdminData();</script>
         </button>
         <button onclick="showPage('ai-chat')" style="display:inline-flex;align-items:center;gap:.45rem;background:var(--accent);color:white;border:none;border-radius:10px;padding:.55rem 1rem;font-size:.8rem;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .2s;letter-spacing:.02em;white-space:nowrap;" onmouseover="this.style.background='#b35424'" onmouseout="this.style.background='var(--accent)'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>تدرب مع ممتحنة AI</button>
       </div>
+      <div id="ai-quota-mini" style="margin-top:.6rem;font-size:.78rem;font-weight:600;"></div>
     </div>
   </div>
   <div class="content-area">
@@ -4621,7 +4630,7 @@ function showPage(id) {
     }
     _lazyLoadSection('sw');
   }
-  if (id === 'ai-chat' && typeof window.aiUpdateQuotaDisplay === 'function') {
+  if ((id === 'ai-chat' || id === 'mundlich' || id === 'mundlich-teil1') && typeof window.aiUpdateQuotaDisplay === 'function') {
     window.aiUpdateQuotaDisplay();
   }
   if (id === 'struktur-schreiben') {
@@ -5166,6 +5175,19 @@ function editAiSessions(id) {
   saveCodes();
   renderCodes();
   showToast('✓ جلسات AI لكود ' + c.code + ': ' + n);
+}
+// ✅ منح نفس عدد جلسات AI لكل الأكواد دفعة واحدة — مفيد للأكواد القديمة
+// التي أُنشئت قبل إضافة هذه الميزة (حصتها 0 افتراضياً للأمان من تكاليف API غير متوقعة)
+function bulkSetAiSessions() {
+  const input = document.getElementById('bulk-ai-sessions-input');
+  const n = Math.max(0, Math.min(999, parseInt(input.value) || 0));
+  if (!codes || codes.length === 0) { showToast('⚠ لا توجد أكواد حالياً'); return; }
+  showConfirm('منح ' + n + ' جلسة AI لكل الأكواد الحالية (' + codes.length + ' كود) — سيُستبدل أي عدد سابق لكل كود. متابعة؟', function() {
+    codes.forEach(function(c) { c.ai_sessions = n; });
+    saveCodes();
+    renderCodes();
+    showToast('✓ تم منح ' + n + ' جلسة AI لـ ' + codes.length + ' كود — يظهر التحديث للطلاب عند إعادة دخولهم بالكود');
+  });
 }
 function resetAiUsage(id) {
   const c = codes.find(x => x.id === id);
@@ -11992,22 +12014,34 @@ async function afkarMoveGroup(id, direction) {
   function aiUpdateQuotaDisplay() {
     var note = document.getElementById('ai-quota-note');
     var startBtn = document.getElementById('ai-start-btn');
-    if (!note) return;
+    var mini = document.getElementById('ai-quota-mini');
     var total = window._aiSessionsTotal || 0;
     var used = window._aiSessionsUsed || 0;
     var remaining = Math.max(0, total - used);
-    if (total <= 0) {
-      note.textContent = '🔒 ميزة الممتحنة AI غير مفعّلة لكودك. تواصل مع الإدارة لتفعيلها.';
-      note.style.color = '#c0392b';
-      if (startBtn) startBtn.disabled = true;
-    } else if (remaining <= 0) {
-      note.textContent = '🔒 لقد استهلكت كل جلساتك (' + used + '/' + total + '). تواصل مع الإدارة لتفعيل جلسات إضافية.';
-      note.style.color = '#c0392b';
-      if (startBtn) startBtn.disabled = true;
-    } else {
-      note.textContent = '🎙️ لديك ' + remaining + ' من ' + total + ' جلسة متبقية مع الممتحنة الذكية';
-      note.style.color = '';
-      if (startBtn) startBtn.disabled = false;
+    if (note) {
+      if (total <= 0) {
+        note.textContent = '🔒 ميزة الممتحنة AI غير مفعّلة لكودك. تواصل مع الإدارة لتفعيلها.';
+        note.style.color = '#c0392b';
+        if (startBtn) startBtn.disabled = true;
+      } else if (remaining <= 0) {
+        note.textContent = '🔒 لقد استهلكت كل جلساتك (' + used + '/' + total + '). تواصل مع الإدارة لتفعيل جلسات إضافية.';
+        note.style.color = '#c0392b';
+        if (startBtn) startBtn.disabled = true;
+      } else {
+        note.textContent = '🎙️ لديك ' + remaining + ' من ' + total + ' جلسة متبقية مع الممتحنة الذكية';
+        note.style.color = '';
+        if (startBtn) startBtn.disabled = false;
+      }
+    }
+    // ✅ بادج صغير في صفحة Mündlich نفسها — يظهر قبل دخول الطالب لصفحة AI
+    if (mini) {
+      if (total <= 0) {
+        mini.innerHTML = '<span style="color:var(--muted);">🔒 ميزة الممتحنة AI غير مفعّلة لكودك</span>';
+      } else if (remaining <= 0) {
+        mini.innerHTML = '<span style="color:#c0392b;">🔒 استهلكت كل جلسات الممتحنة AI (' + used + '/' + total + ')</span>';
+      } else {
+        mini.innerHTML = '<span style="color:var(--accent);">🎙️ لديك ' + remaining + ' من ' + total + ' جلسة متبقية مع الممتحنة AI</span>';
+      }
     }
   }
   window.aiUpdateQuotaDisplay = aiUpdateQuotaDisplay;
