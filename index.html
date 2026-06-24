@@ -1680,6 +1680,12 @@ applyHv3AdminData();</script>
               style="width:52px;border:none;background:transparent;font-size:.9rem;font-weight:700;color:var(--accent);text-align:center;outline:none;">
             <span style="font-size:.8rem;color:var(--muted);">يوم</span>
           </div>
+          <div style="display:flex;align-items:center;gap:.4rem;background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:.4rem .75rem;white-space:nowrap;">
+            <span style="font-size:.9rem;">🎙️</span>
+            <label for="ai-sessions-input" style="font-size:.8rem;font-weight:600;color:var(--ink);">جلسات AI:</label>
+            <input type="number" id="ai-sessions-input" min="0" max="999" value="0"
+              style="width:46px;border:none;background:transparent;font-size:.9rem;font-weight:700;color:var(--accent);text-align:center;outline:none;">
+          </div>
           <button class="btn-primary" onclick="addCode()" style="white-space:nowrap;">✚ إنشاء</button>
         </div>
         <div style="display:flex;gap:.5rem;margin-top:.65rem;flex-wrap:wrap;">
@@ -1693,6 +1699,30 @@ applyHv3AdminData();</script>
           </button>
         </div>
         <p class="admin-note" id="code-validity-note">الكود سيكون صالحاً لمدة <strong>يوم واحد</strong> من تاريخ الإنشاء — <span id="code-type-note" style="color:var(--accent);font-weight:600;">📱 هاتف واحد فقط</span>.</p>
+        <p class="admin-note" id="ai-sessions-note" style="color:var(--muted);">🎙️ عدد جلسات الممتحنة AI: <strong>0 = الميزة غير مفعّلة</strong> لهذا الكود. العدد مشترك بين كل من يستعمل هذا الكود.</p>
+      </div>
+
+      <div class="admin-form-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+          <h3 style="margin:0;">الأكواد الحالية</h3>
+        </div>
+        <div style="overflow-x:auto;margin-top:.75rem;">
+          <table class="hv1-table" style="width:100%;font-size:.82rem;">
+            <thead>
+              <tr>
+                <th style="text-align:right;">Code</th>
+                <th>النوع</th>
+                <th>الحالة</th>
+                <th>الاستخدام</th>
+                <th>جلسات AI</th>
+                <th>الصلاحية</th>
+                <th>أُنشئ في</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="codes-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
     </div>
@@ -2597,7 +2627,8 @@ applyHv3AdminData();</script>
       <div class="ai-start-avatar">FM</div>
       <div class="ai-start-name">Frau Müller</div>
       <div class="ai-start-desc">ستبدأ الجلسة بمجرد ضغطك على الزر — ستسمع الممتحنة ترحب بك أولاً</div>
-      <button class="ai-start-btn" onclick="aiBeginSession()">
+      <div class="ai-start-desc" id="ai-quota-note" style="font-weight:700;"></div>
+      <button class="ai-start-btn" id="ai-start-btn" onclick="aiBeginSession()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         ابدأ الجلسة
       </button>
@@ -3190,6 +3221,7 @@ const _ENC = (function() {
 const WORKER_URL = "https://2-telc-2-api.b2-telc-tn.workers.dev";
 let _sessionToken = null; // يُحفظ بعد التحقق من الكود
 window.__getToken = function() { return _sessionToken; };
+window.__getActiveCode = function() { return activeCode; };
 (function() {
   var _unlocked = false;
   var _token = null;
@@ -3505,7 +3537,8 @@ async function _syncCodesIndex() {
           weeks: c.weeks || 1,
           active: c.active,
           type: c.type || 'single',
-          created_at: c.created_at
+          created_at: c.created_at,
+          ai_sessions: c.ai_sessions || 0
         })
       }).catch(function(e) {
         console.warn('codes_index sync failed for code:', c.code, e);
@@ -3966,6 +3999,10 @@ async function checkGate() {
     const expires = new Date(verifyData.expires);
     window.__sessionExpiry = expires; // حفظ تاريخ الانتهاء في الذاكرة فقط
     _sessionToken = verifyData.token; // حفظ الـ token في الذاكرة فقط (لا localStorage)
+    // ✅ حصة جلسات الممتحنة AI (مشتركة لكل من يستعمل هذا الكود) — يرجعها /api/verify-code
+    window._aiSessionsTotal = verifyData.ai_sessions_total || 0;
+    window._aiSessionsUsed = verifyData.ai_sessions_used || 0;
+    if (typeof window.aiUpdateQuotaDisplay === 'function') window.aiUpdateQuotaDisplay();
     _ENC.setUserCode(val).catch(function(e){ console.warn('ENC key setup failed:', e); });
     // حفظ نوع الكود في الذاكرة فقط
     var _codeTypeFromWorker = verifyData.type || 'single';    if (verifyData.type) {
@@ -4584,6 +4621,9 @@ function showPage(id) {
     }
     _lazyLoadSection('sw');
   }
+  if (id === 'ai-chat' && typeof window.aiUpdateQuotaDisplay === 'function') {
+    window.aiUpdateQuotaDisplay();
+  }
   if (id === 'struktur-schreiben') {
     strukturLoadAndRender();
   }
@@ -4995,6 +5035,7 @@ function getExpiryLabel(created_at, weeks) {
 }
 // ✅ جلب إحصائيات الاستخدام عبر Worker (بدلاً من Firebase مباشرة)
 let _usageCache = {};
+let _aiUsageCache = {};
 function loadUsageStats(callback) {
   try {
     const adminPass = _adminPassStore.get();
@@ -5011,7 +5052,11 @@ function loadUsageStats(callback) {
       // بما أن Worker لا يدعم sessions/usage مباشرة، نجلب من Firebase بـ fallback آمن
       firebase.database().ref('sessions/usage').once('value').then(function(snap) {
         _usageCache = snap.val() || {};
-        callback();
+        // ✅ جلسات AI: عداد مستقل مشترك لكل كود — تُحدَّثه ال-Worker فقط (atomic)
+        firebase.database().ref('ai_sessions/usage').once('value').then(function(aiSnap) {
+          _aiUsageCache = aiSnap.val() || {};
+          callback();
+        }).catch(function() { callback(); });
       }).catch(function() { callback(); });
     }).catch(function() { callback(); });
   } catch(e) { callback(); }
@@ -5020,7 +5065,7 @@ function renderCodes() {
   const tbody = document.getElementById('codes-tbody');
   if (!tbody) return;
   if (!codes || codes.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:1.5rem;">Keine Codes vorhanden</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:1.5rem;">Keine Codes vorhanden</td></tr>';
     return;
   }
   // جلب الإحصائيات من Firebase ثم رسم الجدول
@@ -5045,6 +5090,13 @@ function _renderCodesTable() {
       ? `<span class="badge badge-gray">Abgelaufen</span>`
       : `<span class="badge ${c.active ? 'badge-green' : 'badge-gray'}">${c.active ? 'Aktiv' : 'Inaktiv'}</span>`;
     const weeksBadge = `<span style="font-size:.65rem;background:var(--accent-light);color:var(--accent);border:1px solid #e8c4b0;border-radius:100px;padding:.1rem .5rem;font-weight:600;">${w} Tag(e)</span>`;
+    // ✅ جلسات AI — العدد الإجمالي (يحدده الأدمن) والمستهلَك (مشترك، يحدّثه الـ Worker فقط)
+    const aiTotal = c.ai_sessions || 0;
+    const aiUsed = (_aiUsageCache[safeCode] && _aiUsageCache[safeCode].used) || 0;
+    const aiRemaining = Math.max(0, aiTotal - aiUsed);
+    const aiCell = aiTotal > 0
+      ? `<span class="badge ${aiRemaining > 0 ? 'badge-green' : 'badge-red'}">${aiUsed}/${aiTotal}</span>`
+      : `<span class="badge badge-gray">غير مفعّلة</span>`;
     return `
     <tr>
       <td><span style="font-family:'DM Mono',monospace;font-size:.85rem;letter-spacing:.08em;">${escHtml(c.code)}</span></td>
@@ -5054,11 +5106,14 @@ function _renderCodesTable() {
       }</td>
       <td>${statusBadge}</td>
       <td><span class="badge ${useCount > 0 ? 'badge-green' : 'badge-outline'}">${useCount}×</span> <span style="font-size:.75rem;color:var(--muted);">${lastUsed}</span></td>
+      <td>${aiCell}</td>
       <td>${weeksBadge} ${getExpiryLabel(c.created_at, w)}</td>
       <td>${new Date(c.created_at).toLocaleDateString('de-DE')}</td>
       <td><div style="display:flex;gap:.4rem;flex-wrap:wrap;">
         <button class="btn-sm" onclick="toggleCodeType('${c.id}')" title="تغيير النوع">${c.type === 'multi' ? '→📱' : '→👥'}</button>
         <button class="btn-sm" onclick="toggleCode('${c.id}')">${c.active ? 'Deaktiv.' : 'Aktivieren'}</button>
+        <button class="btn-sm" onclick="editAiSessions('${c.id}')" title="تعديل عدد جلسات AI">🎙️ تعديل</button>
+        ${aiUsed > 0 ? `<button class="btn-sm" onclick="resetAiUsage('${c.id}')" title="تصفير الاستخدام">↺ تصفير</button>` : ''}
         <button class="btn-sm btn-sm-red" onclick="deleteCode('${c.id}')">Löschen</button>
       </div></td>
     </tr>`;
@@ -5083,18 +5138,49 @@ function setCodeType(t) {
 function addCode() {
   const input = document.getElementById('new-code-input');
   const weeksInput = document.getElementById('days-input');
+  const aiInput = document.getElementById('ai-sessions-input');
   const weeks = Math.max(1, Math.min(365, parseInt(weeksInput.value) || 1));
+  const aiSessions = Math.max(0, Math.min(999, parseInt(aiInput.value) || 0));
   const val = (input.value.trim() || generateCode()).toUpperCase();
   if (codes.find(c => c.code === val)) { showToast('⚠ Code existiert bereits'); return; }
-  codes.unshift({ id: Date.now().toString(), code: val, active: true, use_count: 0, created_at: new Date().toISOString(), weeks, type: _newCodeType });
+  codes.unshift({ id: Date.now().toString(), code: val, active: true, use_count: 0, created_at: new Date().toISOString(), weeks, type: _newCodeType, ai_sessions: aiSessions });
   saveCodes();
   input.value = '';
   weeksInput.value = 1;
+  aiInput.value = 0;
   updateValidityNote();
   renderCodes();
   const weeksLabel = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
   const typeLabel = _newCodeType === 'single' ? '📱 هاتف واحد' : '👥 متعدد الأجهزة';
-  showToast('✓ Code ' + val + ' erstellt — ' + weeksLabel + ' — ' + typeLabel);
+  const aiLabel = aiSessions > 0 ? (' — 🎙️ ' + aiSessions + ' جلسة AI') : '';
+  showToast('✓ Code ' + val + ' erstellt — ' + weeksLabel + ' — ' + typeLabel + aiLabel);
+}
+function editAiSessions(id) {
+  const c = codes.find(x => x.id === id);
+  if (!c) return;
+  const current = c.ai_sessions || 0;
+  const val = prompt('عدد جلسات الممتحنة AI لهذا الكود (0 = تعطيل الميزة، العدد مشترك بين كل من يستعمل الكود):', current);
+  if (val === null) return;
+  const n = Math.max(0, Math.min(999, parseInt(val) || 0));
+  c.ai_sessions = n;
+  saveCodes();
+  renderCodes();
+  showToast('✓ جلسات AI لكود ' + c.code + ': ' + n);
+}
+function resetAiUsage(id) {
+  const c = codes.find(x => x.id === id);
+  if (!c) return;
+  showConfirm('تصفير عدد جلسات AI المستهلكة لكود ' + c.code + '؟', function() {
+    const adminPass = _adminPassStore.get();
+    fetch(WORKER_URL + '/api/admin/codes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminPassword: adminPass, action: 'reset_ai_usage', code: c.code })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      renderCodes();
+      showToast(d && d.ok !== false ? '✓ تم تصفير جلسات AI لكود ' + c.code : '⚠ تعذّر التصفير — تحقق من تحديث الـ Worker');
+    }).catch(function(){ showToast('⚠ تعذّر التصفير — تحقق من اتصالك'); });
+  });
 }
 function updateValidityNote() {
   const weeksInput = document.getElementById('days-input');
@@ -11809,6 +11895,41 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Begin session (triggered by start button) ──────────────────
   window.aiBeginSession = function() {
+    // ✅ تحقّق من حصة جلسات AI واستهلك جلسة واحدة عبر الـ Worker قبل البدء الفعلي
+    var startBtn = document.getElementById('ai-start-btn');
+    var quotaNote = document.getElementById('ai-quota-note');
+    if (startBtn) startBtn.disabled = true;
+    if (quotaNote) { quotaNote.textContent = 'جارٍ التحقق من الجلسات المتاحة...'; quotaNote.style.color = ''; }
+    var code = (window.__getActiveCode ? window.__getActiveCode() : null);
+    var token = (window.__getToken ? window.__getToken() : null) || '';
+    fetch(WORKER_URL + '/api/ai-session/consume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+      body: JSON.stringify({ code: code })
+    })
+    .then(function(r) {
+      return r.json().then(function(d) { return { status: r.status, body: d }; })
+        .catch(function() { return { status: r.status, body: null }; });
+    })
+    .catch(function() { return { status: 0, body: null }; })
+    .then(function(res) {
+      if (startBtn) startBtn.disabled = false;
+      if (res.body && res.body.ok) {
+        if (typeof res.body.total === 'number') window._aiSessionsTotal = res.body.total;
+        if (typeof res.body.remaining === 'number') window._aiSessionsUsed = (window._aiSessionsTotal || 0) - res.body.remaining;
+        _aiActuallyBeginSession();
+      } else {
+        var errType = res.body && res.body.error;
+        var msg = (errType === 'quota_exceeded')
+          ? '🔒 لقد استهلكت جميع جلسات الممتحنة AI المتاحة لكودك. تواصل مع الإدارة لتفعيل جلسات إضافية.'
+          : '⚠ تعذّر بدء الجلسة، تحقق من اتصالك وحاول مرة أخرى.';
+        if (quotaNote) { quotaNote.textContent = msg; quotaNote.style.color = '#c0392b'; }
+        if (typeof showToast === 'function') showToast(msg);
+      }
+    });
+  };
+
+  function _aiActuallyBeginSession() {
     aiUnlockAudio();
     _sessionStarted = true;
     // أخفِ شاشة البداية وأظهر المايك
@@ -11821,7 +11942,7 @@ async function afkarMoveGroup(id, direction) {
     // أظهر رسالة ترحيب وابدأ
     aiSetHint('جارٍ تحميل الجلسة...');
     aiGetFirstMessage();
-  };
+  }
 
   // ── Reset ──────────────────────────────────────────────────────
   window.aiReset = function() {
@@ -11864,7 +11985,32 @@ async function afkarMoveGroup(id, direction) {
     if (startScreen) startScreen.style.display = 'flex';
     if (micCenter) micCenter.style.display = 'none';
     if (headerCard) headerCard.style.display = 'none';
+    aiUpdateQuotaDisplay();
   };
+
+  // ── عرض عدد جلسات AI المتبقية على شاشة البداية ──────────────────
+  function aiUpdateQuotaDisplay() {
+    var note = document.getElementById('ai-quota-note');
+    var startBtn = document.getElementById('ai-start-btn');
+    if (!note) return;
+    var total = window._aiSessionsTotal || 0;
+    var used = window._aiSessionsUsed || 0;
+    var remaining = Math.max(0, total - used);
+    if (total <= 0) {
+      note.textContent = '🔒 ميزة الممتحنة AI غير مفعّلة لكودك. تواصل مع الإدارة لتفعيلها.';
+      note.style.color = '#c0392b';
+      if (startBtn) startBtn.disabled = true;
+    } else if (remaining <= 0) {
+      note.textContent = '🔒 لقد استهلكت كل جلساتك (' + used + '/' + total + '). تواصل مع الإدارة لتفعيل جلسات إضافية.';
+      note.style.color = '#c0392b';
+      if (startBtn) startBtn.disabled = true;
+    } else {
+      note.textContent = '🎙️ لديك ' + remaining + ' من ' + total + ' جلسة متبقية مع الممتحنة الذكية';
+      note.style.color = '';
+      if (startBtn) startBtn.disabled = false;
+    }
+  }
+  window.aiUpdateQuotaDisplay = aiUpdateQuotaDisplay;
 
   // ── First message from AI (ترحيب) ─────────────────────────────
   function aiGetFirstMessage() {
