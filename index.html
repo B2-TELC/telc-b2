@@ -5084,10 +5084,19 @@ function addCode() {
   input.value = '';
   weeksInput.value = 2;
   aiInput.value = 0;
- = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
+  updateValidityNote();
+  const weeksLabel = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
   const typeLabel = _newCodeType === 'single' ? '📱 هاتف واحد' : '👥 متعدد الأجهزة';
   const aiLabel = aiSessions > 0 ? (' — 🎙️ ' + aiSessions + ' جلسة AI') : '';
   showToast('✓ Code ' + val + ' erstellt — ' + weeksLabel + ' — ' + typeLabel + aiLabel);
+}
+function updateValidityNote() {
+  const weeksInput = document.getElementById('days-input');
+  const note = document.getElementById('code-validity-note');
+  if (!weeksInput || !note) return;
+  const weeks = Math.max(2, parseInt(weeksInput.value) || 2);
+  const label = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
+  note.innerHTML = 'الكود سيكون صالحاً لمدة <strong>' + label + '</strong> من تاريخ الإنشاء.';
 }
 // ---- ADMIN TABS ----
 function switchTab(tab) {
