@@ -1702,36 +1702,7 @@ applyHv3AdminData();</script>
         <p class="admin-note" id="ai-sessions-note" style="color:var(--muted);">🎙️ عدد جلسات الممتحنة AI: <strong>0 = الميزة غير مفعّلة</strong> لهذا الكود. العدد مشترك بين كل من يستعمل هذا الكود.</p>
       </div>
 
-      <div class="admin-form-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-          <h3 style="margin:0;">الأكواد الحالية</h3>
-        </div>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.75rem;flex-wrap:wrap;background:var(--cream);border:1px solid var(--border);border-radius:6px;padding:.6rem .75rem;">
-          <span style="font-size:.8rem;font-weight:600;color:var(--ink);">🎙️ منح كل الأكواد الحالية (دفعة واحدة):</span>
-          <input type="number" id="bulk-ai-sessions-input" min="0" max="999" value="100"
-            style="width:55px;border:1px solid var(--border);border-radius:4px;padding:.25rem .4rem;font-size:.85rem;font-weight:700;color:var(--accent);text-align:center;">
-          <span style="font-size:.78rem;color:var(--muted);">جلسة</span>
-          <button class="btn-sm" onclick="bulkSetAiSessions()">تطبيق على الجميع</button>
-        </div>
-        <p class="admin-note">مفيد للأكواد القديمة التي أُنشئت قبل إضافة ميزة جلسات AI (حصتها 0 افتراضياً للأمان).</p>
-        <div style="overflow-x:auto;margin-top:.75rem;">
-          <table class="hv1-table" style="width:100%;font-size:.82rem;">
-            <thead>
-              <tr>
-                <th style="text-align:right;">Code</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th>الاستخدام</th>
-                <th>جلسات AI</th>
-                <th>الصلاحية</th>
-                <th>أُنشئ في</th>
-                <th>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody id="codes-tbody"></tbody>
-          </table>
-        </div>
-      </div>
+
 
     </div>
     <div id="tab-panel-exams" style="display:none;">
@@ -3408,7 +3379,7 @@ async function fetchRemoteData() {
           codes = Object.values(codesRaw);
           remoteData.codes = codes;
         }
-        if (typeof renderCodes === 'function') renderCodes();
+
       } catch(e) {
         console.warn('fetchRemoteData: codes fetch failed:', e);
       }
@@ -3893,7 +3864,6 @@ async function _runBgLoader() {
 }
 
 async function loadExamDataAfterAuth() {
-  try { renderCodes(); } catch(e) {}
   showSyncBadge('ok');
 
   // ابدأ التحميل التدريجي في الخلفية بعد ثانية واحدة (بعد ما تفتح الصفحة)
@@ -5084,64 +5054,7 @@ function loadUsageStats(callback) {
     }).catch(function() { callback(); });
   } catch(e) { callback(); }
 }
-function renderCodes() {
-  const tbody = document.getElementById('codes-tbody');
-  if (!tbody) return;
-  if (!codes || codes.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:1.5rem;">Keine Codes vorhanden</td></tr>';
-    return;
-  }
-  // جلب الإحصائيات من Firebase ثم رسم الجدول
-  loadUsageStats(function() {
-    _renderCodesTable();
-  });
-}
-function _renderCodesTable() {
-  const tbody = document.getElementById('codes-tbody');
-  if (!tbody) return;
-  const now = new Date();
-  tbody.innerHTML = codes.map(c => {
-    const w = c.weeks || 1;
-    const expires = new Date(new Date(c.created_at).getTime() + w * 24 * 60 * 60 * 1000);
-    const expired = now > expires;
-    // قراءة الإحصائيات من /sessions/usage
-    const safeCode = c.code.replace(/[^a-zA-Z0-9]/g,'_');
-    const usageData = _usageCache[safeCode] || {};
-    const useCount = usageData.count || c.use_count || 0;
-    const lastUsed = usageData.last_used_at ? new Date(usageData.last_used_at).toLocaleDateString('de-DE') : (c.last_used_at ? new Date(c.last_used_at).toLocaleDateString('de-DE') : '—');
-    const statusBadge = expired
-      ? `<span class="badge badge-gray">Abgelaufen</span>`
-      : `<span class="badge ${c.active ? 'badge-green' : 'badge-gray'}">${c.active ? 'Aktiv' : 'Inaktiv'}</span>`;
-    const weeksBadge = `<span style="font-size:.65rem;background:var(--accent-light);color:var(--accent);border:1px solid #e8c4b0;border-radius:100px;padding:.1rem .5rem;font-weight:600;">${w} Tag(e)</span>`;
-    // ✅ جلسات AI — العدد الإجمالي (يحدده الأدمن) والمستهلَك (مشترك، يحدّثه الـ Worker فقط)
-    const aiTotal = c.ai_sessions || 0;
-    const aiUsed = (_aiUsageCache[safeCode] && _aiUsageCache[safeCode].used) || 0;
-    const aiRemaining = Math.max(0, aiTotal - aiUsed);
-    const aiCell = aiTotal > 0
-      ? `<span class="badge ${aiRemaining > 0 ? 'badge-green' : 'badge-red'}">${aiUsed}/${aiTotal}</span>`
-      : `<span class="badge badge-gray">غير مفعّلة</span>`;
-    return `
-    <tr>
-      <td><span style="font-family:'DM Mono',monospace;font-size:.85rem;letter-spacing:.08em;">${escHtml(c.code)}</span></td>
-      <td>${c.type === 'multi'
-        ? '<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:.72rem;font-weight:700;background:#e3f0fb;color:#1565c0;border:1px solid #90caf9;border-radius:100px;padding:.15rem .6rem;">👥 متعدد</span>'
-        : '<span style="display:inline-flex;align-items:center;gap:.25rem;font-size:.72rem;font-weight:700;background:var(--accent-light);color:var(--accent);border:1px solid #e8c4b0;border-radius:100px;padding:.15rem .6rem;">📱 فردي</span>'
-      }</td>
-      <td>${statusBadge}</td>
-      <td><span class="badge ${useCount > 0 ? 'badge-green' : 'badge-outline'}">${useCount}×</span> <span style="font-size:.75rem;color:var(--muted);">${lastUsed}</span></td>
-      <td>${aiCell}</td>
-      <td>${weeksBadge} ${getExpiryLabel(c.created_at, w)}</td>
-      <td>${new Date(c.created_at).toLocaleDateString('de-DE')}</td>
-      <td><div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-        <button class="btn-sm" onclick="toggleCodeType('${c.id}')" title="تغيير النوع">${c.type === 'multi' ? '→📱' : '→👥'}</button>
-        <button class="btn-sm" onclick="toggleCode('${c.id}')">${c.active ? 'Deaktiv.' : 'Aktivieren'}</button>
-        <button class="btn-sm" onclick="editAiSessions('${c.id}')" title="تعديل عدد جلسات AI">🎙️ تعديل</button>
-        ${aiUsed > 0 ? `<button class="btn-sm" onclick="resetAiUsage('${c.id}')" title="تصفير الاستخدام">↺ تصفير</button>` : ''}
-        <button class="btn-sm btn-sm-red" onclick="deleteCode('${c.id}')">Löschen</button>
-      </div></td>
-    </tr>`;
-  }).join('');
-}
+
 var _newCodeType = 'single';
 function setCodeType(t) {
   _newCodeType = t;
@@ -5171,82 +5084,11 @@ function addCode() {
   input.value = '';
   weeksInput.value = 2;
   aiInput.value = 0;
-  updateValidityNote();
-  renderCodes();
-  const weeksLabel = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
+ = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
   const typeLabel = _newCodeType === 'single' ? '📱 هاتف واحد' : '👥 متعدد الأجهزة';
   const aiLabel = aiSessions > 0 ? (' — 🎙️ ' + aiSessions + ' جلسة AI') : '';
   showToast('✓ Code ' + val + ' erstellt — ' + weeksLabel + ' — ' + typeLabel + aiLabel);
 }
-function editAiSessions(id) {
-  const c = codes.find(x => x.id === id);
-  if (!c) return;
-  const current = c.ai_sessions || 0;
-  const val = prompt('عدد جلسات الممتحنة AI لهذا الكود (0 = تعطيل الميزة، العدد مشترك بين كل من يستعمل الكود):', current);
-  if (val === null) return;
-  const n = Math.max(0, Math.min(999, parseInt(val) || 0));
-  c.ai_sessions = n;
-  saveCodes();
-  renderCodes();
-  showToast('✓ جلسات AI لكود ' + c.code + ': ' + n);
-}
-// ✅ منح نفس عدد جلسات AI لكل الأكواد دفعة واحدة — مفيد للأكواد القديمة
-// التي أُنشئت قبل إضافة هذه الميزة (حصتها 0 افتراضياً للأمان من تكاليف API غير متوقعة)
-function bulkSetAiSessions() {
-  const input = document.getElementById('bulk-ai-sessions-input');
-  const n = Math.max(0, Math.min(999, parseInt(input.value) || 0));
-  if (!codes || codes.length === 0) { showToast('⚠ لا توجد أكواد حالياً'); return; }
-  showConfirm('منح ' + n + ' جلسة AI لكل الأكواد الحالية (' + codes.length + ' كود) — سيُستبدل أي عدد سابق لكل كود. متابعة؟', function() {
-    codes.forEach(function(c) { c.ai_sessions = n; });
-    saveCodes();
-    renderCodes();
-    showToast('✓ تم منح ' + n + ' جلسة AI لـ ' + codes.length + ' كود — يظهر التحديث للطلاب عند إعادة دخولهم بالكود');
-  });
-}
-function resetAiUsage(id) {
-  const c = codes.find(x => x.id === id);
-  if (!c) return;
-  showConfirm('تصفير عدد جلسات AI المستهلكة لكود ' + c.code + '؟', function() {
-    const adminPass = _adminPassStore.get();
-    fetch(WORKER_URL + '/api/admin/codes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminPassword: adminPass, action: 'reset_ai_usage', code: c.code })
-    }).then(function(r){ return r.json(); }).then(function(d){
-      renderCodes();
-      showToast(d && d.ok !== false ? '✓ تم تصفير جلسات AI لكود ' + c.code : '⚠ تعذّر التصفير — تحقق من تحديث الـ Worker');
-    }).catch(function(){ showToast('⚠ تعذّر التصفير — تحقق من اتصالك'); });
-  });
-}
-function updateValidityNote() {
-  const weeksInput = document.getElementById('days-input');
-  const note = document.getElementById('code-validity-note');
-  if (!weeksInput || !note) return;
-  const weeks = Math.max(2, parseInt(weeksInput.value) || 2);
-  const label = weeks === 1 ? 'يوم واحد' : weeks + ' أيام';
-  note.innerHTML = 'الكود سيكون صالحاً لمدة <strong>' + label + '</strong> من تاريخ الإنشاء.';
-}
-function toggleCodeType(id) {
-  const c = codes.find(x => x.id === id);
-  if (!c) return;
-  c.type = (c.type === 'multi') ? 'single' : 'multi';
-  saveCodes();
-  renderCodes();
-  showToast('النوع تغيّر إلى: ' + (c.type === 'multi' ? '👥 متعدد الأجهزة' : '📱 هاتف واحد'));
-}
-function toggleCode(id) {
-  const c = codes.find(x => x.id === id);
-  if (c) { c.active = !c.active; saveCodes(); renderCodes(); showToast('Code ' + (c.active ? 'aktiviert' : 'deaktiviert')); }
-}
-function deleteCode(id) {
-  showConfirm('Code wirklich löschen?', function() {
-    codes = codes.filter(x => x.id !== id);
-    saveCodes();
-    renderCodes();
-    showToast('Code gelöscht');
-  });
-}
-renderCodes();
 // ---- ADMIN TABS ----
 function switchTab(tab) {
   document.getElementById('tab-panel-codes').style.display = tab === 'codes' ? 'block' : 'none';
