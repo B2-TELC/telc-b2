@@ -12053,7 +12053,7 @@ async function afkarMoveGroup(id, direction) {
 
     var ratingPrompt = (_aiTeil === 't2') ? RATING_PROMPT_T2 : (_aiTeil === 't3') ? RATING_PROMPT_T3 : RATING_PROMPT_T1;
 
-    callAiApi(ratingPrompt, _aiHistory, function(reply) {
+    callAiApi(ratingPrompt, _aiHistory.slice(-8), function(reply) {
       var parsed = null;
       try {
         var clean = reply.replace(/```json|```/g, '').trim();
