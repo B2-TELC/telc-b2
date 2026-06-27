@@ -1138,6 +1138,7 @@ function buildHv1Card(exam) {
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
   html += '<button class="hv1-check-btn" onclick="hv1Check(' + exam.id + ')">Antworten prüfen</button>';
   html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="hv1Reset(' + exam.id + ')">Zurücksetzen</button>';
+  html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;font-family:\'DM Mono\',monospace;letter-spacing:.05em;" onclick="hvShowCode(hv1Data,' + exam.id + ',this)">Code</button>';
   html += '<span class="hv1-result-msg" id="hv1-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
@@ -1156,6 +1157,22 @@ function hvTranslate(btn, sentId) {
   fetch(url).then(function(r){return r.json();}).then(function(d){
     trEl.textContent = d[0].map(function(x){return x[0];}).join('');
   }).catch(function(){ trEl.textContent = 'خطأ في الترجمة'; });
+}
+function hvShowCode(data, id, btn) {
+  var exam = data.find(function(e){ return e.id === id; });
+  if (!exam || !exam.answers) return;
+  var richtigNums = [];
+  exam.answers.forEach(function(ans, idx) {
+    if (ans === 'r') richtigNums.push(idx + 1);
+  });
+  var code = richtigNums.length ? richtigNums.join('، ') : '—';
+  var existing = btn.parentNode.querySelector('.hv-code-bubble');
+  if (existing) { existing.remove(); return; }
+  var bubble = document.createElement('span');
+  bubble.className = 'hv-code-bubble';
+  bubble.style.cssText = 'display:inline-flex;align-items:center;gap:.35rem;background:#1a1a18;color:#f5f0e8;font-family:\'DM Mono\',monospace;font-size:.8rem;font-weight:700;padding:.28rem .7rem;border-radius:20px;letter-spacing:.05em;';
+  bubble.innerHTML = '🔑 <span>' + code + '</span>';
+  btn.parentNode.insertBefore(bubble, btn.nextSibling);
 }
 applyHv1AdminData();</script>
   </div>
@@ -1257,6 +1274,7 @@ function buildHv2Card(exam) {
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
   html += '<button class="hv1-check-btn" onclick="hv2Check(' + exam.id + ')">Antworten prüfen</button>';
   html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="hv2Reset(' + exam.id + ')">Zurücksetzen</button>';
+  html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;font-family:'DM Mono',monospace;letter-spacing:.05em;" onclick="hvShowCode(hv2Data,' + exam.id + ',this)">Code</button>';
   html += '<span class="hv1-result-msg" id="hv2-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
@@ -1342,6 +1360,7 @@ function buildHv3Card(exam) {
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
   html += '<button class="hv1-check-btn" onclick="hv3Check(' + exam.id + ')">Antworten prüfen</button>';
   html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="hv3Reset(' + exam.id + ')">Zurücksetzen</button>';
+  html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;font-family:'DM Mono',monospace;letter-spacing:.05em;" onclick="hvShowCode(hv3Data,' + exam.id + ',this)">Code</button>';
   html += '<span class="hv1-result-msg" id="hv3-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
