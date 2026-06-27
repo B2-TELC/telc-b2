@@ -754,7 +754,14 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     </div>
   </div>
   <div class="content-area" style="max-width:100%; padding:0.5rem;">
-<style>.hv1-card{background:#fff;border:none;border-radius:18px;margin-bottom:1.8rem;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.09);transition:box-shadow .2s}.hv1-card:hover{box-shadow:0 8px 32px rgba(200,96,42,.13)}.hv1-card-header{background:linear-gradient(135deg,#1a2a3a 60%,#2d4460);color:#fff;display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;letter-spacing:.01em}.hv1-card-header svg{color:#f0c070;flex-shrink:0}.hv1-audio-wrap{flex:1;display:flex;align-items:center}.hv1-audio-wrap audio{flex:1;height:30px;border-radius:20px;filter:invert(1) brightness(.9)}.hv1-table{width:100%;border-collapse:collapse;table-layout:fixed}.hv1-table thead tr{background:linear-gradient(90deg,#1a2a3a,#243547);color:#fff}.hv1-table thead th{padding:.55rem .2rem;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;width:34px;color:#aac8e8}.hv1-table thead th:last-child{text-align:left;width:auto;padding-left:1rem;color:#e0e8f0}.hv1-table tbody tr{border-bottom:1px solid #f2ede6;transition:background .15s}.hv1-table tbody tr:last-child{border-bottom:none}.hv1-table tbody tr:hover{background:#fdf9f5}.hv1-table tbody td{padding:.75rem .2rem;font-size:.92rem;line-height:1.6;word-wrap:break-word;color:var(--ink);vertical-align:middle}.hv1-table tbody td.hv1-radio-cell{text-align:center;width:34px}.hv1-table tbody td.hv1-radio-cell input[type=radio]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}.hv1-table tbody td:last-child{padding-left:1rem}.hv1-card-footer{padding:.9rem 1.1rem;border-top:1px solid #f0ebe2;background:linear-gradient(90deg,#faf7f2,#f5f0e8);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.hv1-check-btn{background:linear-gradient(135deg,#1a2a3a,#2d4460);color:#fff;border:none;border-radius:10px;padding:.55rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(26,42,58,.18)}.hv1-check-btn:hover{background:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,96,42,.28)}.hv1-result-msg{font-size:.84rem;color:var(--muted);margin-top:.2rem;display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;font-weight:500}.hv1-row-correct td{background:#edfbef !important}.hv1-row-correct td:last-child{border-left:3px solid #43a047}.hv1-row-wrong td{background:#fff3f3 !important}.hv1-row-wrong td:last-child{border-left:3px solid #e53935}.hv-title-highlight{background:#ffe066;color:#7a4f00;border-radius:3px;padding:0 2px;font-weight:700;}</style>
+<style>.hv1-card{background:#fff;border:none;border-radius:18px;margin-bottom:1.8rem;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.09);transition:box-shadow .2s}.hv1-card:hover{box-shadow:0 8px 32px rgba(200,96,42,.13)}.hv1-card-header{background:linear-gradient(135deg,#1a2a3a 60%,#2d4460);color:#fff;display:flex;align-items:center;gap:.85rem;padding:.9rem 1.1rem;font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;letter-spacing:.01em}.hv1-card-header svg{color:#f0c070;flex-shrink:0}.hv1-audio-wrap{flex:1;display:flex;align-items:center}.hv1-audio-wrap audio{flex:1;height:30px;border-radius:20px;filter:invert(1) brightness(.9)}.hv1-table{width:100%;border-collapse:collapse;table-layout:fixed}.hv1-table thead tr{background:linear-gradient(90deg,#1a2a3a,#243547);color:#fff}.hv1-table thead th{padding:.55rem .2rem;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;text-align:center;width:34px;color:#aac8e8}.hv1-table thead th:last-child{text-align:left;width:auto;padding-left:1rem;color:#e0e8f0}.hv1-table tbody tr{border-bottom:1px solid #f2ede6;transition:background .15s}.hv1-table tbody tr:last-child{border-bottom:none}.hv1-table tbody tr:hover{background:#fdf9f5}.hv1-table tbody td{padding:.75rem .2rem;font-size:.92rem;line-height:1.6;word-wrap:break-word;color:var(--ink);vertical-align:middle}.hv1-table tbody td.hv1-radio-cell{text-align:center;width:34px}.hv1-table tbody td.hv1-radio-cell input[type=radio]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}.hv1-table tbody td:last-child{padding-left:1rem}.hv1-card-footer{padding:.9rem 1.1rem;border-top:1px solid #f0ebe2;background:linear-gradient(90deg,#faf7f2,#f5f0e8);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.hv1-check-btn{background:linear-gradient(135deg,#1a2a3a,#2d4460);color:#fff;border:none;border-radius:10px;padding:.55rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(26,42,58,.18)}.hv1-check-btn:hover{background:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(200,96,42,.28)}.hv1-result-msg{font-size:.84rem;color:var(--muted);margin-top:.2rem;display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;font-weight:500}.hv1-row-correct td{background:#edfbef !important}.hv1-row-correct td:last-child{border-left:3px solid #43a047}.hv1-row-wrong td{background:#fff3f3 !important}.hv1-row-wrong td:last-child{border-left:3px solid #e53935}.hv-title-highlight{background:#ffe066;color:#7a4f00;border-radius:3px;padding:0 2px;font-weight:700;}
+.hv-code-btn{background:rgba(255,255,255,0.12);color:#e0e8f0;border:1.5px solid rgba(255,255,255,0.25);border-radius:8px;padding:.28rem .55rem;font-size:.68rem;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.06em;cursor:pointer;transition:all .2s;white-space:nowrap;line-height:1;}
+.hv-code-btn:hover{background:rgba(255,255,255,0.22);border-color:rgba(255,255,255,0.5);color:#fff;}
+.hv-code-btn.active{background:#f0c070;color:#1a2a3a;border-color:#f0c070;box-shadow:0 2px 8px rgba(240,192,112,.4);}
+.hv-code-popup{position:absolute;right:.5rem;top:calc(100% + 6px);background:#1a2a3a;color:#f5f0e8;border-radius:12px;padding:.5rem .9rem;font-family:'DM Mono',monospace;font-size:.85rem;font-weight:700;letter-spacing:.08em;z-index:999;box-shadow:0 6px 20px rgba(0,0,0,.35);white-space:nowrap;animation:codePopIn .18s cubic-bezier(.2,.8,.4,1.1);pointer-events:none;}
+.hv-code-popup::before{content:'';position:absolute;top:-5px;right:12px;width:10px;height:10px;background:#1a2a3a;transform:rotate(45deg);border-radius:2px;}
+@keyframes codePopIn{from{opacity:0;transform:translateY(-4px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
 <script>
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
@@ -1115,7 +1122,7 @@ function buildHv1Card(exam) {
   html += '<span class="hv-card-title" style="flex:1 1 auto;min-width:0;overflow:visible;white-space:normal;word-break:break-word;font-size:1.15rem;font-weight:700;transition:font-size .2s;line-height:1.2;">' + escHtml(exam.title) + '</span>';
   if (exam.audio) { html += '<audio controls style="flex:0 0 auto;width:min(160px,42%);height:36px;border-radius:8px;outline:none;" src="' + exam.audio + '" onplay="hvStopOthers(this)"></audio>'; }
   html += '</div>';
-  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th></tr></thead><tbody id="hv-tbody-hv1-row-' + exam.id + '">';
+  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th><th style="text-align:right;width:56px;padding-right:.5rem;"><button class="hv-code-btn" onclick="hvShowCode(hv1Data,' + exam.id + ',this)">🔑</button></th></tr></thead><tbody id="hv-tbody-hv1-row-' + exam.id + '">';
   var hv1TitleHighlighted = false;
   for (var i = 1; i <= 5; i++) {
     html += '<tr id="hv1-row-' + exam.id + '-' + i + '">';
@@ -1132,13 +1139,12 @@ function buildHv1Card(exam) {
       + '</button>'
       + '<div id="' + _sentId + '-tr" style="display:none;direction:rtl;text-align:right;font-size:.76rem;color:#7a4020;background:#f0ddd2;border-radius:5px;padding:.2rem .45rem;margin-top:.2rem;line-height:1.6;"></div>'
       + '</td>';
-    html += '</tr>';
+    html += '<td></td></tr>';
   }
   html += '</tbody></table>';
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
   html += '<button class="hv1-check-btn" onclick="hv1Check(' + exam.id + ')">Antworten prüfen</button>';
   html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="hv1Reset(' + exam.id + ')">Zurücksetzen</button>';
-  html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;font-family:\'DM Mono\',monospace;letter-spacing:.05em;" onclick="hvShowCode(hv1Data,' + exam.id + ',this)">Code</button>';
   html += '<span class="hv1-result-msg" id="hv1-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
@@ -1161,18 +1167,26 @@ function hvTranslate(btn, sentId) {
 function hvShowCode(data, id, btn) {
   var exam = data.find(function(e){ return e.id === id; });
   if (!exam || !exam.answers) return;
+  // إذا الـ popup موجود بالفعل، نغلقه
+  var existing = btn.parentNode.querySelector('.hv-code-popup');
+  if (existing) { existing.remove(); btn.classList.remove('active'); return; }
   var richtigNums = [];
   exam.answers.forEach(function(ans, idx) {
     if (ans === 'r') richtigNums.push(idx + 1);
   });
-  var code = richtigNums.length ? richtigNums.join('، ') : '—';
-  var existing = btn.parentNode.querySelector('.hv-code-bubble');
-  if (existing) { existing.remove(); return; }
-  var bubble = document.createElement('span');
-  bubble.className = 'hv-code-bubble';
-  bubble.style.cssText = 'display:inline-flex;align-items:center;gap:.35rem;background:#1a1a18;color:#f5f0e8;font-family:\'DM Mono\',monospace;font-size:.8rem;font-weight:700;padding:.28rem .7rem;border-radius:20px;letter-spacing:.05em;';
-  bubble.innerHTML = '🔑 <span>' + code + '</span>';
-  btn.parentNode.insertBefore(bubble, btn.nextSibling);
+  var code = richtigNums.length ? richtigNums.join(' · ') : '—';
+  var popup = document.createElement('div');
+  popup.className = 'hv-code-popup';
+  popup.innerHTML = '🔑 ' + code;
+  btn.parentNode.style.position = 'relative';
+  btn.parentNode.appendChild(popup);
+  btn.classList.add('active');
+  // إغلاق عند الضغط خارج الجدول
+  setTimeout(function() {
+    document.addEventListener('click', function _close(e) {
+      if (!btn.contains(e.target)) { popup.remove(); btn.classList.remove('active'); document.removeEventListener('click', _close); }
+    });
+  }, 10);
 }
 applyHv1AdminData();</script>
   </div>
@@ -1258,7 +1272,7 @@ function buildHv2Card(exam) {
   html += '<span class="hv-card-title" style="flex:1 1 auto;min-width:0;overflow:visible;white-space:normal;word-break:break-word;font-size:1.15rem;font-weight:700;transition:font-size .2s;line-height:1.2;">' + escHtml(exam.title) + '</span>';
   if (exam.audio) { html += '<audio controls style="flex:0 0 auto;width:min(160px,42%);height:36px;border-radius:8px;outline:none;" src="' + exam.audio + '" onplay="hvStopOthers(this)"></audio>'; }
   html += '</div>';
-  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th></tr></thead><tbody id="hv-tbody-hv2-row-' + exam.id + '">';
+  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th><th style="text-align:right;width:56px;padding-right:.5rem;"><button class="hv-code-btn" onclick="hvShowCode(hv2Data,' + exam.id + ',this)">🔑</button></th></tr></thead><tbody id="hv-tbody-hv2-row-' + exam.id + '">';
   var hv2TitleHighlighted = false;
   for (var i = 1; i <= 10; i++) {
     html += '<tr id="hv2-row-' + exam.id + '-' + i + '">';
@@ -1268,13 +1282,12 @@ function buildHv2Card(exam) {
     var _r2 = _kw2 ? { html: highlightKeywords(exam.sentences[i-1]||'', _kw2), found: false } : highlightTitleInSentence(exam.sentences[i-1]||'', exam.title||'', hv2TitleHighlighted);
     if (_r2.found) hv2TitleHighlighted = true;
     html += '<td style="font-size:.8rem;line-height:1.4;word-wrap:break-word;padding:.45rem .4rem;">' + i + '. ' + _r2.html + '</td>';
-    html += '</tr>';
+    html += '<td></td></tr>';
   }
   html += '</tbody></table>';
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
   html += '<button class="hv1-check-btn" onclick="hv2Check(' + exam.id + ')">Antworten prüfen</button>';
   html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="hv2Reset(' + exam.id + ')">Zurücksetzen</button>';
-  html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;font-family:'DM Mono',monospace;letter-spacing:.05em;" onclick="hvShowCode(hv2Data,' + exam.id + ',this)">Code</button>';
   html += '<span class="hv1-result-msg" id="hv2-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
@@ -1344,7 +1357,7 @@ function buildHv3Card(exam) {
   html += '<span class="hv-card-title" style="flex:1 1 auto;min-width:0;overflow:visible;white-space:normal;word-break:break-word;font-size:1.15rem;font-weight:700;transition:font-size .2s;line-height:1.2;">' + escHtml(exam.title) + '</span>';
   if (exam.audio) { html += '<audio controls style="flex:0 0 auto;width:min(160px,42%);height:36px;border-radius:8px;outline:none;" src="' + exam.audio + '" onplay="hvStopOthers(this)"></audio>'; }
   html += '</div>';
-  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th></tr></thead><tbody id="hv-tbody-hv3-row-' + exam.id + '">';
+  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th><th style="text-align:right;width:56px;padding-right:.5rem;"><button class="hv-code-btn" onclick="hvShowCode(hv3Data,' + exam.id + ',this)">🔑</button></th></tr></thead><tbody id="hv-tbody-hv3-row-' + exam.id + '">';
   var hv3TitleHighlighted = false;
   for (var i = 1; i <= 5; i++) {
     html += '<tr id="hv3-row-' + exam.id + '-' + i + '">';
@@ -1354,13 +1367,12 @@ function buildHv3Card(exam) {
     var _r3 = _kw3 ? { html: highlightKeywords(exam.sentences[i-1]||'', _kw3), found: false } : highlightTitleInSentence(exam.sentences[i-1]||'', exam.title||'', hv3TitleHighlighted);
     if (_r3.found) hv3TitleHighlighted = true;
     html += '<td>' + i + '. ' + _r3.html + '</td>';
-    html += '</tr>';
+    html += '<td></td></tr>';
   }
   html += '</tbody></table>';
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
   html += '<button class="hv1-check-btn" onclick="hv3Check(' + exam.id + ')">Antworten prüfen</button>';
   html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;" onclick="hv3Reset(' + exam.id + ')">Zurücksetzen</button>';
-  html += '<button class="btn-outline" style="font-size:.8rem;padding:.4rem 1rem;font-family:'DM Mono',monospace;letter-spacing:.05em;" onclick="hvShowCode(hv3Data,' + exam.id + ',this)">Code</button>';
   html += '<span class="hv1-result-msg" id="hv3-msg-' + exam.id + '"></span>';
   html += '</div></div>';
   return html;
