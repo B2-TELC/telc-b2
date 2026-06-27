@@ -1122,7 +1122,7 @@ function buildHv1Card(exam) {
   html += '<span class="hv-card-title" style="flex:1 1 auto;min-width:0;overflow:visible;white-space:normal;word-break:break-word;font-size:1.15rem;font-weight:700;transition:font-size .2s;line-height:1.2;">' + escHtml(exam.title) + '</span>';
   if (exam.audio) { html += '<audio controls style="flex:0 0 auto;width:min(160px,42%);height:36px;border-radius:8px;outline:none;" src="' + exam.audio + '" onplay="hvStopOthers(this)"></audio>'; }
   html += '</div>';
-  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th><th style="text-align:right;width:56px;padding-right:.5rem;"><button class="hv-code-btn" onclick="hvShowCode(hv1Data,' + exam.id + ',this)">🔑</button></th></tr></thead><tbody id="hv-tbody-hv1-row-' + exam.id + '">';
+  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;position:relative;">Aussage<button class="hv-code-btn" onclick="hvShowCode(hv1Data,' + exam.id + ',this)" style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);">🔑</button></th></tr></thead><tbody id="hv-tbody-hv1-row-' + exam.id + '">';
   var hv1TitleHighlighted = false;
   for (var i = 1; i <= 5; i++) {
     html += '<tr id="hv1-row-' + exam.id + '-' + i + '">';
@@ -1139,7 +1139,7 @@ function buildHv1Card(exam) {
       + '</button>'
       + '<div id="' + _sentId + '-tr" style="display:none;direction:rtl;text-align:right;font-size:.76rem;color:#7a4020;background:#f0ddd2;border-radius:5px;padding:.2rem .45rem;margin-top:.2rem;line-height:1.6;"></div>'
       + '</td>';
-    html += '<td></td></tr>';
+    html += '</tr>';
   }
   html += '</tbody></table>';
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
@@ -1272,7 +1272,7 @@ function buildHv2Card(exam) {
   html += '<span class="hv-card-title" style="flex:1 1 auto;min-width:0;overflow:visible;white-space:normal;word-break:break-word;font-size:1.15rem;font-weight:700;transition:font-size .2s;line-height:1.2;">' + escHtml(exam.title) + '</span>';
   if (exam.audio) { html += '<audio controls style="flex:0 0 auto;width:min(160px,42%);height:36px;border-radius:8px;outline:none;" src="' + exam.audio + '" onplay="hvStopOthers(this)"></audio>'; }
   html += '</div>';
-  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th><th style="text-align:right;width:56px;padding-right:.5rem;"><button class="hv-code-btn" onclick="hvShowCode(hv2Data,' + exam.id + ',this)">🔑</button></th></tr></thead><tbody id="hv-tbody-hv2-row-' + exam.id + '">';
+  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;position:relative;">Aussage<button class="hv-code-btn" onclick="hvShowCode(hv2Data,' + exam.id + ',this)" style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);">🔑</button></th></tr></thead><tbody id="hv-tbody-hv2-row-' + exam.id + '">';
   var hv2TitleHighlighted = false;
   for (var i = 1; i <= 10; i++) {
     html += '<tr id="hv2-row-' + exam.id + '-' + i + '">';
@@ -1282,7 +1282,7 @@ function buildHv2Card(exam) {
     var _r2 = _kw2 ? { html: highlightKeywords(exam.sentences[i-1]||'', _kw2), found: false } : highlightTitleInSentence(exam.sentences[i-1]||'', exam.title||'', hv2TitleHighlighted);
     if (_r2.found) hv2TitleHighlighted = true;
     html += '<td style="font-size:.8rem;line-height:1.4;word-wrap:break-word;padding:.45rem .4rem;">' + i + '. ' + _r2.html + '</td>';
-    html += '<td></td></tr>';
+    html += '</tr>';
   }
   html += '</tbody></table>';
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
@@ -1357,7 +1357,7 @@ function buildHv3Card(exam) {
   html += '<span class="hv-card-title" style="flex:1 1 auto;min-width:0;overflow:visible;white-space:normal;word-break:break-word;font-size:1.15rem;font-weight:700;transition:font-size .2s;line-height:1.2;">' + escHtml(exam.title) + '</span>';
   if (exam.audio) { html += '<audio controls style="flex:0 0 auto;width:min(160px,42%);height:36px;border-radius:8px;outline:none;" src="' + exam.audio + '" onplay="hvStopOthers(this)"></audio>'; }
   html += '</div>';
-  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;">Aussage</th><th style="text-align:right;width:56px;padding-right:.5rem;"><button class="hv-code-btn" onclick="hvShowCode(hv3Data,' + exam.id + ',this)">🔑</button></th></tr></thead><tbody id="hv-tbody-hv3-row-' + exam.id + '">';
+  html += '<table class="hv1-table"><thead><tr><th>RICHTIG</th><th>FALSCH</th><th style="text-align:left;position:relative;">Aussage<button class="hv-code-btn" onclick="hvShowCode(hv3Data,' + exam.id + ',this)" style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);">🔑</button></th></tr></thead><tbody id="hv-tbody-hv3-row-' + exam.id + '">';
   var hv3TitleHighlighted = false;
   for (var i = 1; i <= 5; i++) {
     html += '<tr id="hv3-row-' + exam.id + '-' + i + '">';
@@ -1367,7 +1367,7 @@ function buildHv3Card(exam) {
     var _r3 = _kw3 ? { html: highlightKeywords(exam.sentences[i-1]||'', _kw3), found: false } : highlightTitleInSentence(exam.sentences[i-1]||'', exam.title||'', hv3TitleHighlighted);
     if (_r3.found) hv3TitleHighlighted = true;
     html += '<td>' + i + '. ' + _r3.html + '</td>';
-    html += '<td></td></tr>';
+    html += '</tr>';
   }
   html += '</tbody></table>';
   html += '<div class="hv1-card-footer" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">';
