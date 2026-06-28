@@ -12014,14 +12014,29 @@ async function afkarMoveGroup(id, direction) {
     var remaining = Math.max(0, total - used);
     if (note) {
       if (total <= 0) {
-        note.textContent = '🔒 ميزة الممتحنة AI غير مفعّلة لكودك. تواصل مع الإدارة لتفعيلها.';
-        note.style.color = '#c0392b';
+        // ── حساب عدد الجلسات بناءً على الأيام المتبقية ─────────
+        var sessionsToGrant = 0;
+        if (window.__sessionExpiry) {
+          var daysLeft = Math.ceil((window.__sessionExpiry - Date.now()) / 86400000);
+          sessionsToGrant = Math.max(1, daysLeft); // جلسة لكل يوم متبقي، بحد أدنى 1
+        }
+        // زر تفعيل الميزة
+        note.innerHTML =
+          '<div style="color:#c0392b;margin-bottom:.75rem;">🔒 ميزة الممتحنة AI غير مفعّلة لكودك.</div>' +
+          '<button id="ai-activate-btn" onclick="aiActivateFeature(' + sessionsToGrant + ')" ' +
+          'style="display:inline-flex;align-items:center;gap:.45rem;background:var(--accent);color:white;border:none;border-radius:10px;' +
+          'padding:.65rem 1.4rem;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>' +
+          'تفعيل الميزة (' + sessionsToGrant + ' جلسة)' +
+          '</button>';
+        note.style.color = '';
         if (startBtn) startBtn.disabled = true;
       } else if (remaining <= 0) {
         note.textContent = '🔒 لقد استهلكت كل جلساتك (' + used + '/' + total + '). تواصل مع الإدارة لتفعيل جلسات إضافية.';
         note.style.color = '#c0392b';
         if (startBtn) startBtn.disabled = true;
       } else {
+        note.innerHTML = '';
         note.textContent = '🎙️ لديك ' + remaining + ' من ' + total + ' جلسة متبقية مع الممتحنة AI';
         note.style.color = '';
         if (startBtn) startBtn.disabled = false;
@@ -12033,6 +12048,55 @@ async function afkarMoveGroup(id, direction) {
     }
   }
   window.aiUpdateQuotaDisplay = aiUpdateQuotaDisplay;
+
+  // ── تفعيل ميزة AI تلقائياً بعدد جلسات محسوب من الأيام المتبقية ──
+  async function aiActivateFeature(sessions) {
+    var btn = document.getElementById('ai-activate-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+    if (!activeCode || !_sessionToken) {
+      if (btn) { btn.disabled = false; btn.textContent = 'تفعيل الميزة'; }
+      showToast('خطأ في الجلسة. أعد الدخول.');
+      return;
+    }
+
+    try {
+      var res = await fetch(WORKER_URL + '/api/ai/self-activate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': _sessionToken
+        },
+        body: JSON.stringify({
+          code: activeCode,
+          sessions: sessions
+        })
+      });
+      var data = await res.json();
+
+      if (data.ok) {
+        window._aiSessionsTotal = data.sessions; // نستخدم العدد المحسوب من الـ server
+        window._aiSessionsUsed = 0;
+        aiUpdateQuotaDisplay();
+        showToast('🎙️ تم تفعيل ' + data.sessions + ' جلسة مع الممتحنة AI!');
+      } else {
+        var errMsgs = {
+          'already_activated': 'الميزة مفعّلة بالفعل. أعد تحميل الصفحة.',
+          'expired': 'انتهت صلاحية كودك.',
+          'inactive': 'الكود غير مفعّل.',
+          'unauthorized': 'انتهت جلستك. أعد الدخول.'
+        };
+        showToast(errMsgs[data.error] || 'تعذّر التفعيل. حاول مجدداً.');
+        if (btn) { btn.disabled = false; }
+        if (typeof aiUpdateQuotaDisplay === 'function') aiUpdateQuotaDisplay();
+      }
+    } catch(e) {
+      if (btn) { btn.disabled = false; }
+      if (typeof aiUpdateQuotaDisplay === 'function') aiUpdateQuotaDisplay();
+      showToast('تعذّر التفعيل. تحقق من اتصالك.');
+    }
+  }
+  window.aiActivateFeature = aiActivateFeature;
 
   // ── First message from AI (ترحيب) ─────────────────────────────
   function aiGetFirstMessage() {
@@ -13024,8 +13088,8 @@ async function giftPageLoad() {
 // ── 3. نسخ الـ ID ──────────────────────────────────────────
 function giftCopyId() {
   const el = document.getElementById('gift-my-id');
-  const id = el ? el.dataset.id || el.textContent.trim() : '';
-  if (!id || id.includes('جارٍ') || id.includes('تعذّر')) return;
+  const id = el ? (el.dataset.id || '').trim() : '';
+  if (!id || id.length !== 4) { showToast('لا يوجد معرّف لنسخه بعد.'); return; }
   navigator.clipboard.writeText(id).then(() => {
     showToast('✓ تم نسخ معرّفك: ' + id);
   }).catch(() => {
@@ -13048,8 +13112,9 @@ async function giftSubmitReferral() {
   const refId = input.value.trim().toUpperCase();
   errEl.style.display = 'none';
 
-  if (!refId || refId.length < 5) {
-    errEl.textContent = 'الرجاء إدخال معرّف صالح.';
+  // الـ ID صيغته: حرف + 3 أرقام = 4 محارف بالضبط
+  if (!refId || !/^[A-Z][0-9]{3}$/.test(refId)) {
+    errEl.textContent = 'الرجاء إدخال معرّف صالح (مثال: K853).';
     errEl.style.display = 'block'; return;
   }
   if (!activeCode || !window.__gateUnlocked || !_sessionToken) {
@@ -13064,7 +13129,9 @@ async function giftSubmitReferral() {
     errEl.style.display = 'block'; return;
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  // حماية من الضغط المزدوج
+  if (btn && btn.dataset.submitting === '1') return;
+  if (btn) { btn.disabled = true; btn.dataset.submitting = '1'; btn.textContent = '...'; }
 
   try {
     const res = await fetch(WORKER_URL + '/api/referral/redeem', {
@@ -13153,8 +13220,6 @@ function giftShowBtn() {
 }
 
 // ── 6. تحميل الصفحة عند الانتقال إليها ────────────────────
-const _origShowPage = showPage;
-// نعترض showPage لتحميل بيانات الهدية
 (function() {
   const _orig = window.showPage;
   window.showPage = function(id) {
