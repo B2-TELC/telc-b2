@@ -13015,24 +13015,24 @@ function lv3ToggleIslah() {
 
 // ── 1. توليد أو جلب referralId الخاص بالكود ──────────────
 async function giftGetOrCreateMyId() {
-  if (!activeCode || !window.__gateUnlocked) return null;
+  if (!activeCode || !window.__gateUnlocked || !_sessionToken) return null;
   // لا ننشئ ID لكودات أقل من 10 أيام صلاحية إجمالية
   if (window.__sessionExpiry) {
-    const totalDays = Math.ceil((window.__sessionExpiry - Date.now()) / 86400000);
+    const totalDays = Math.ceil((new Date(window.__sessionExpiry) - Date.now()) / 86400000);
     if (totalDays < 10) return null;
   }
-  const db = firebase.database();
-  const codeKey = activeCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
-  const ref = db.ref('referrals/ids/' + codeKey);
-  const snap = await ref.once('value');
-  if (snap.val()) return snap.val();
-  // أنشئ ID جديد بصيغة X000 (حرف + 3 أرقام)
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const digits = '0123456789';
-  let id = letters[Math.floor(Math.random() * letters.length)];
-  for (let i = 0; i < 3; i++) id += digits[Math.floor(Math.random() * digits.length)];
-  await ref.set(id);
-  return id;
+  // نطلب الـ ID من الـ Worker (الذي يكتب على Firebase بصلاحيات كاملة)
+  const res = await fetch(WORKER_URL + '/api/referral/get-id', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Session-Token': _sessionToken
+    },
+    body: JSON.stringify({ code: activeCode.trim().toUpperCase() })
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.id || null;
 }
 
 // ── 2. تحميل صفحة الهدية ──────────────────────────────────
