@@ -351,9 +351,21 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
       <div style="background:var(--accent);color:white;font-family:'Playfair Display',serif;font-weight:900;font-size:0.85rem;padding:0.35rem 0.6rem;border-radius:4px;">B2</div>
       <span style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:500;">Telc <span style="color:var(--accent);">Pro</span></span>
     </div>
-    <div id="days-badge" style="display:none;align-items:center;gap:0.4rem;background:var(--accent-light);border:1px solid #e8c4b0;border-radius:100px;padding:0.3rem 0.75rem;font-size:0.75rem;font-weight:600;color:var(--accent);white-space:nowrap;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      <span id="days-badge-text"></span>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <div id="days-badge" style="display:none;align-items:center;gap:0.4rem;background:var(--accent-light);border:1px solid #e8c4b0;border-radius:100px;padding:0.3rem 0.75rem;font-size:0.75rem;font-weight:600;color:var(--accent);white-space:nowrap;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span id="days-badge-text"></span>
+      </div>
+      <button id="gift-btn" onclick="showPage('gift')" title="هدية الإحالة"
+        style="display:none;align-items:center;justify-content:center;width:36px;height:36px;background:transparent;border:2px solid var(--accent);border-radius:50%;cursor:pointer;flex-shrink:0;transition:background .18s,transform .18s;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 12 20 22 4 22 4 12"/>
+          <rect x="2" y="7" width="20" height="5"/>
+          <line x1="12" y1="22" x2="12" y2="7"/>
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+        </svg>
+      </button>
     </div>
   </div>
   <div style="max-width:680px;margin:0 auto;padding:3rem 1.75rem 1.5rem;">
@@ -444,6 +456,84 @@ if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
     </div>
   </section>
 </div>
+
+<!-- ======================================================= -->
+<!-- صفحة الهدية / نظام الإحالة                             -->
+<!-- ======================================================= -->
+<div id="page-gift" class="page">
+  <div class="cat-header">
+    <div class="cat-header-inner">
+      <button class="back-btn" onclick="showPage(&apos;home&apos;)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Zurück
+      </button>
+      <div class="cat-kicker">نظام الإحالة</div>
+      <h2 class="cat-title" style="font-family:&apos;Playfair Display&apos;,serif;">🎁 هديّة الإحالة</h2>
+      <p class="cat-lead" style="direction:rtl;text-align:right;font-family:&apos;DM Sans&apos;,sans-serif;color:var(--muted);">
+        ادعُ صديقك واستفيدا معاً من 7 أيام إضافية + 7 جلسات مع الممتحنة AI
+      </p>
+    </div>
+  </div>
+  <div class="content-area" style="max-width:560px;margin:0 auto;padding:2rem 1.25rem 4rem;">
+    <div style="background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.75rem;">معرّفك الخاص للمشاركة</div>
+      <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+        <div id="gift-my-id" style="font-family:&apos;DM Mono&apos;,monospace;font-size:1.35rem;font-weight:700;color:var(--ink);background:var(--cream);border:1.5px dashed var(--accent);border-radius:10px;padding:.55rem 1.1rem;letter-spacing:.12em;flex:1;text-align:center;min-width:120px;">
+          <span style="color:var(--muted);font-size:.8rem;">جارٍ التحميل...</span>
+        </div>
+        <button onclick="giftCopyId()" style="display:flex;align-items:center;gap:.4rem;background:var(--accent);color:white;border:none;border-radius:10px;padding:.6rem 1.1rem;font-family:&apos;DM Sans&apos;,sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          نسخ
+        </button>
+      </div>
+      <p style="font-size:.76rem;color:var(--muted);margin-top:.75rem;direction:rtl;text-align:right;line-height:1.6;">
+        شارك هذا المعرّف مع صديقك. عندما يدخله في خانة أدناه، يحصل الاثنان على المكافأة.
+      </p>
+    </div>
+    <div id="gift-already-used" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:16px;padding:1.25rem;margin-bottom:1.25rem;direction:rtl;text-align:right;">
+      <div style="display:flex;align-items:center;gap:.6rem;color:#16a34a;font-weight:700;font-size:.9rem;margin-bottom:.4rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        استفدت بالفعل من مكافأة الإحالة!
+      </div>
+      <p style="font-size:.8rem;color:#15803d;font-family:&apos;DM Sans&apos;,sans-serif;margin:0;" id="gift-used-detail"></p>
+    </div>
+    <div id="gift-referral-form-wrap" style="background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin-bottom:.85rem;direction:rtl;">أدخل معرّف من دعاك</div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+        <input id="gift-ref-input" type="text" placeholder="مثال: K853" maxlength="4"
+          style="flex:1;min-width:130px;padding:.7rem 1rem;border:1.5px solid var(--border);border-radius:10px;font-family:&apos;DM Mono&apos;,monospace;font-size:1rem;font-weight:600;letter-spacing:.1em;color:var(--ink);background:white;text-transform:uppercase;text-align:center;outline:none;"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key===&apos;Enter&apos;)giftSubmitReferral()">
+        <button onclick="giftSubmitReferral()" id="gift-submit-btn"
+          style="display:flex;align-items:center;gap:.4rem;background:var(--ink);color:white;border:none;border-radius:10px;padding:.7rem 1.25rem;font-family:&apos;DM Sans&apos;,sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+          استلم الهدية
+        </button>
+      </div>
+      <div id="gift-ref-error" style="display:none;font-size:.8rem;color:#e53935;margin-top:.6rem;direction:rtl;text-align:right;"></div>
+    </div>
+    <div style="background:linear-gradient(135deg,#fff8f0 0%,#fdf3ea 100%);border:1.5px solid #e8c4b0;border-radius:16px;padding:1.25rem;direction:rtl;text-align:right;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--accent);margin-bottom:.85rem;">ماذا تحصل أنت وصديقك؟</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+        <div style="background:white;border-radius:10px;padding:.85rem;border:1px solid #e8c4b0;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.3rem;">📅</div>
+          <div style="font-family:&apos;Playfair Display&apos;,serif;font-size:1.4rem;font-weight:900;color:var(--accent);">+7</div>
+          <div style="font-size:.75rem;color:var(--muted);font-weight:500;">أيام إضافية</div>
+        </div>
+        <div style="background:white;border-radius:10px;padding:.85rem;border:1px solid #e8c4b0;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.3rem;">🎙️</div>
+          <div style="font-family:&apos;Playfair Display&apos;,serif;font-size:1.4rem;font-weight:900;color:var(--accent);">+7</div>
+          <div style="font-size:.75rem;color:var(--muted);font-weight:500;">جلسات AI</div>
+        </div>
+      </div>
+      <p style="font-size:.74rem;color:var(--muted);margin-top:.75rem;line-height:1.6;">
+        * كل كود يستفيد من الإحالة مرة واحدة فقط. لا يمكن إحالة نفسك.
+      </p>
+    </div>
+  </div>
+</div>
+<!-- ======================================================= -->
+
 <div id="page-leseverstehen" class="page">
   <div class="cat-header">
     <div class="cat-header-inner">
@@ -12852,6 +12942,240 @@ function lv3ToggleIslah() {
     document.addEventListener('touchstart', _close);
   }, 10);
 }
+</script>
+
+<script>
+// ============================================================
+// 🎁 نظام الإحالة — Referral System
+// ============================================================
+
+// ── 1. توليد أو جلب referralId الخاص بالكود ──────────────
+async function giftGetOrCreateMyId() {
+  if (!activeCode || !window.__gateUnlocked) return null;
+  // لا ننشئ ID لكودات أقل من 10 أيام صلاحية إجمالية
+  if (window.__sessionExpiry) {
+    const totalDays = Math.ceil((window.__sessionExpiry - Date.now()) / 86400000);
+    if (totalDays < 10) return null;
+  }
+  const db = firebase.database();
+  const codeKey = activeCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+  const ref = db.ref('referrals/ids/' + codeKey);
+  const snap = await ref.once('value');
+  if (snap.val()) return snap.val();
+  // أنشئ ID جديد بصيغة X000 (حرف + 3 أرقام)
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '0123456789';
+  let id = letters[Math.floor(Math.random() * letters.length)];
+  for (let i = 0; i < 3; i++) id += digits[Math.floor(Math.random() * digits.length)];
+  await ref.set(id);
+  return id;
+}
+
+// ── 2. تحميل صفحة الهدية ──────────────────────────────────
+async function giftPageLoad() {
+  const myIdEl = document.getElementById('gift-my-id');
+  const alreadyUsed = document.getElementById('gift-already-used');
+  const formWrap = document.getElementById('gift-referral-form-wrap');
+  const usedDetail = document.getElementById('gift-used-detail');
+  if (!myIdEl) return;
+
+  // جلب / إنشاء الـ ID
+  try {
+    const myId = await giftGetOrCreateMyId();
+    if (myId) {
+      myIdEl.textContent = myId;
+      myIdEl.dataset.id = myId;
+    } else {
+      const daysLeft = window.__sessionExpiry
+        ? Math.ceil((window.__sessionExpiry - Date.now()) / 86400000) : 0;
+      if (daysLeft < 10) {
+        // كود أقل من 10 أيام — لا يحق له الإحالة
+        myIdEl.innerHTML = '<span style="color:var(--muted);font-size:.82rem;line-height:1.5;display:block;text-align:center;">⏳ نظام الإحالة متاح فقط للكودات ذات الصلاحية 10 أيام أو أكثر</span>';
+        if (formWrap) formWrap.style.display = 'none';
+      } else {
+        // كود قديم بدون ID — اعرض زر الحصول على ID
+        myIdEl.innerHTML = '<button onclick="giftGenerateId()" style="display:flex;align-items:center;gap:.5rem;background:var(--accent);color:white;border:none;border-radius:10px;padding:.6rem 1.2rem;font-family:&#39;DM Sans&#39;,sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;margin:0 auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> الحصول على ID</button>';
+      }
+    }
+  } catch(e) {
+    myIdEl.innerHTML = '<span style="color:var(--muted);font-size:.8rem;">تعذّر التحميل</span>';
+  }
+
+  // فحص هل استخدم هذا الكود الإحالة من قبل
+  try {
+    const db = firebase.database();
+    const codeKey = activeCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+    const usedSnap = await db.ref('referrals/used/' + codeKey).once('value');
+    if (usedSnap.val()) {
+      const d = usedSnap.val();
+      if (alreadyUsed) alreadyUsed.style.display = 'block';
+      if (formWrap) formWrap.style.display = 'none';
+      if (usedDetail) {
+        const dateStr = d.at ? new Date(d.at).toLocaleDateString('ar-TN') : '';
+        usedDetail.textContent = 'تم استخدام معرّف الإحالة ' + (d.ref || '') + (dateStr ? ' بتاريخ ' + dateStr : '') + '. حصلت على +7 أيام و+7 جلسات AI.';
+      }
+    }
+  } catch(e) {}
+
+  // إظهار زر الهدية في الهيدر
+  giftShowBtn();
+}
+
+// ── 3. نسخ الـ ID ──────────────────────────────────────────
+function giftCopyId() {
+  const el = document.getElementById('gift-my-id');
+  const id = el ? el.dataset.id || el.textContent.trim() : '';
+  if (!id || id.includes('جارٍ') || id.includes('تعذّر')) return;
+  navigator.clipboard.writeText(id).then(() => {
+    showToast('✓ تم نسخ معرّفك: ' + id);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = id; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ تم نسخ معرّفك: ' + id);
+  });
+}
+
+// ── 4. إرسال الإحالة ──────────────────────────────────────
+async function giftSubmitReferral() {
+  const input = document.getElementById('gift-ref-input');
+  const errEl = document.getElementById('gift-ref-error');
+  const btn = document.getElementById('gift-submit-btn');
+  if (!input || !errEl) return;
+
+  const refId = input.value.trim().toUpperCase();
+  errEl.style.display = 'none';
+
+  if (!refId || refId.length < 5) {
+    errEl.textContent = 'الرجاء إدخال معرّف صالح.';
+    errEl.style.display = 'block'; return;
+  }
+  if (!activeCode || !window.__gateUnlocked || !_sessionToken) {
+    errEl.textContent = 'خطأ في الجلسة. أعد الدخول.';
+    errEl.style.display = 'block'; return;
+  }
+
+  // تحقق: لا تُحيل نفسك
+  const myId = document.getElementById('gift-my-id')?.dataset.id || '';
+  if (myId && refId === myId) {
+    errEl.textContent = 'لا يمكنك استخدام معرّفك الخاص!';
+    errEl.style.display = 'block'; return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+  try {
+    const res = await fetch(WORKER_URL + '/api/referral/redeem', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-Token': _sessionToken
+      },
+      body: JSON.stringify({
+        code: activeCode.trim().toUpperCase(),
+        referralId: refId
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const msgs = {
+        'already_used':    'استخدمت الإحالة من قبل.',
+        'self_referral':   'لا يمكنك إحالة نفسك.',
+        'invalid_referral':'هذا المعرّف غير موجود.',
+        'invalid':         'طلب غير صالح.',
+        'unauthorized':    'انتهت جلستك، أعد الدخول.'
+      };
+      errEl.textContent = msgs[data.error] || 'حدث خطأ. حاول مجدداً.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // نجاح ✓ — تحديث UI
+    const alreadyUsed = document.getElementById('gift-already-used');
+    const formWrap = document.getElementById('gift-referral-form-wrap');
+    const usedDetail = document.getElementById('gift-used-detail');
+    if (alreadyUsed) alreadyUsed.style.display = 'block';
+    if (formWrap) formWrap.style.display = 'none';
+    if (usedDetail) usedDetail.textContent = 'حصلت على +7 أيام و+7 جلسات AI! سيتم تطبيقها عند تجديد جلستك.';
+
+    // تحديث صلاحية الجلسة محلياً إن أعاد الـ worker التاريخ الجديد
+    if (data.new_expires) {
+      window.__sessionExpiry = new Date(data.new_expires);
+      showDaysRemaining();
+    }
+    if (data.new_ai_sessions_total !== undefined) {
+      window._aiSessionsTotal = data.new_ai_sessions_total;
+      if (typeof window.aiUpdateQuotaDisplay === 'function') window.aiUpdateQuotaDisplay();
+    }
+
+    showToast('🎁 تهانيّ! حصلت على +7 أيام و+7 جلسات AI!');
+
+  } catch(e) {
+    errEl.textContent = 'تحقق من اتصالك بالإنترنت.';
+    errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> استلم الهدية'; }
+  }
+}
+
+// ── 4b. توليد ID للكودات القديمة عند الطلب ───────────────
+async function giftGenerateId() {
+  const myIdEl = document.getElementById('gift-my-id');
+  if (!myIdEl) return;
+  myIdEl.innerHTML = '<span style="color:var(--muted);font-size:.8rem;">جارٍ الإنشاء...</span>';
+  try {
+    const myId = await giftGetOrCreateMyId();
+    if (myId) {
+      myIdEl.textContent = myId;
+      myIdEl.dataset.id = myId;
+      showToast('✓ تم إنشاء معرّفك: ' + myId);
+    } else {
+      myIdEl.innerHTML = '<span style="color:#e53935;font-size:.8rem;">تعذّر الإنشاء. حاول مجدداً.</span>';
+    }
+  } catch(e) {
+    myIdEl.innerHTML = '<span style="color:#e53935;font-size:.8rem;">تعذّر الإنشاء. تحقق من اتصالك.</span>';
+  }
+}
+
+// ── 5. إظهار زر الهدية في الهيدر بعد الدخول ──────────────
+function giftShowBtn() {
+  const btn = document.getElementById('gift-btn');
+  if (!btn || !window.__gateUnlocked) return;
+  // لا تظهر الزر لكودات أقل من 10 أيام متبقية
+  if (window.__sessionExpiry) {
+    const daysLeft = Math.ceil((window.__sessionExpiry - Date.now()) / 86400000);
+    if (daysLeft < 10) { btn.style.display = 'none'; return; }
+  }
+  btn.style.display = 'flex';
+}
+
+// ── 6. تحميل الصفحة عند الانتقال إليها ────────────────────
+const _origShowPage = showPage;
+// نعترض showPage لتحميل بيانات الهدية
+(function() {
+  const _orig = window.showPage;
+  window.showPage = function(id) {
+    _orig(id);
+    if (id === 'gift') {
+      giftPageLoad();
+    }
+  };
+})();
+
+// إظهار الزر بعد فتح البوابة
+(function() {
+  const _origCheckGate = window.checkGate;
+  // نراقب gateUnlocked بدلاً من override — أبسط وآمن
+  const _giftObserver = setInterval(function() {
+    if (window.__gateUnlocked) {
+      giftShowBtn();
+      clearInterval(_giftObserver);
+    }
+  }, 500);
+})();
 </script>
 </body>
 </html>
