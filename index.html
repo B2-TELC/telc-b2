@@ -12427,7 +12427,11 @@ async function afkarMoveGroup(id, direction) {
   function aiSendToWhisper(blob) {
     var token = (window.__getToken ? window.__getToken() : null) || '';
     var formData = new FormData();
-    formData.append('audio', blob, 'audio.webm');
+    var ext = 'webm';
+    if (blob.type && blob.type.indexOf('mp4') !== -1) ext = 'mp4';
+    else if (blob.type && blob.type.indexOf('ogg') !== -1) ext = 'ogg';
+    else if (blob.type && blob.type.indexOf('wav') !== -1) ext = 'wav';
+    formData.append('audio', blob, 'audio.' + ext);
     fetch(WORKER_URL + '/api/whisper', {
       method: 'POST',
       headers: { 'X-Session-Token': token },
