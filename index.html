@@ -12489,9 +12489,10 @@ async function afkarMoveGroup(id, direction) {
         var rawErr = res.body ? ((res.body.error || '') + (res.body.detail ? ' ' + res.body.detail : '')) : ('HTTP ' + res.status);
         var detail = rawErr;
         if (/rate.limit|rate_limit|tokens per day|TPD/i.test(rawErr)) detail = 'ميزة التدرب مع ممتحنة AI تحت الصيانة (مشكلة 01)';
+        else if (/ANTHROPIC_KEY not configured/i.test(rawErr)) detail = 'ميزة التدرب مع ممتحنة AI تحت الصيانة (مفتاح Anthropic غير مُعدّ)';
         else if (/GROQ_KEY not configured/i.test(rawErr)) detail = 'ميزة التدرب مع ممتحنة AI تحت الصيانة (مشكلة 04)';
         else if (/fetch error|network error|Failed to fetch/i.test(rawErr)) detail = '❌ تعذّر الاتصال بالخادم — تحقق من اتصال الإنترنت وحاول مرة أخرى';
-        else detail = 'ميزة التدرب مع ممتحنة AI تحت الصيانة (مشكلة 00)';
+        else detail = 'ميزة التدرب مع ممتحنة AI تحت الصيانة (مشكلة 00: ' + rawErr.substring(0, 60) + ')';
         onError(detail);
       }
     })
