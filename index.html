@@ -12533,7 +12533,10 @@ async function afkarMoveGroup(id, direction) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (mySeq !== _speakSeq) return; // طلب قديم تم تجاوزه بنقرة أحدث
-      if (!data || !data.audio) throw new Error(data && data.error ? data.error : 'no audio');
+      if (!data || !data.audio) {
+        var ttsErrMsg = (data && (data.detail || data.error)) ? (data.error + (data.detail ? ': ' + data.detail : '')) : 'no audio';
+        throw new Error(ttsErrMsg);
+      }
 
       var audio = new Audio('data:audio/mpeg;base64,' + data.audio);
       _currentAudio = audio;
@@ -12558,8 +12561,12 @@ async function afkarMoveGroup(id, direction) {
       });
     })
     .catch(function(e) {
-      console.error('OpenAI TTS error, falling back to browser voice:', e);
+      console.error('ElevenLabs TTS error, falling back to browser voice:', e);
       if (mySeq !== _speakSeq) return;
+      var errMsg = (e && e.message) || '';
+      if (typeof showToast === 'function') {
+        showToast('⚠ صوت ElevenLabs غير متاح حالياً (' + (errMsg || 'خطأ غير معروف') + ') — تم التبديل لصوت احتياطي');
+      }
       _aiSpeakBrowser(cleanText, mySeq, onEnd);
     });
   }
