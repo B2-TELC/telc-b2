@@ -2633,6 +2633,11 @@ applyHv3AdminData();</script>
     </div>
     <div id="ai-topic-card-wrap"></div>
     <div class="ai-messages" id="ai-messages"></div>
+    <!-- قائمة اختيار اختبار Teil 2 يدوياً (تظهر فقط عند اختيار Teil 2 قبل بدء الجلسة) -->
+    <div id="ai-t2-picker" style="display:none;">
+      <div style="font-size:.85rem;font-weight:700;margin-bottom:.75rem;color:var(--ink);">اختر الموضوع الذي تريد التحدث عنه:</div>
+      <div class="exam-list" id="ai-t2-picker-list"></div>
+    </div>
     <!-- شاشة البداية -->
     <div class="ai-start-screen" id="ai-start-screen">
       <div class="ai-start-avatar">FM</div>
@@ -11561,7 +11566,7 @@ async function afkarMoveGroup(id, direction) {
     '- Du stellst IMMER nur eine Frage pro Antwort, niemals mehr.\n' +
     '- Du gehst NIE über die 2 Fragen hinaus, auch wenn der Kandidat kurz antwortet. Du schließt aber auch NIEMALS vor der 2. Frage ab.\n' +
     '- LÄNGE & EINFACHHEIT DER FRAGE (SEHR WICHTIG): Jede Frage muss KURZ und EINFACH sein — maximal 12-15 Wörter, EIN einziger Gedanke, EIN Fragezeichen. Baue KEINE Schachtelsätze mit mehreren Nebensätzen, Aufzählungen (z.B. "wie X, Y und Z") oder Einschüben ("die ... hat, wie ...") in die Frage ein. Stelle dir vor, du sprichst die Frage laut in einem echten Gespräch — sie muss beim ersten Hören sofort verständlich sein.\n' +
-    '- Falls du vor der Frage einen kurzen Übergangskommentar machst (z.B. ein Lob), halte ihn auf maximal 1 sehr kurzen, einfachen Satz (max. 8-10 Wörter).\n' +
+    '- ABSOLUT VERBOTEN: Beginne deine Antwort NIEMALS mit einem Dank, Lob oder Kommentar wie "Vielen Dank für Ihre Präsentation", "Das war sehr interessant/persönlich/berührend" o.ä. Stelle die Frage DIREKT, ohne jede Einleitung.\n' +
     '- Jede deine Antwort (außer der Begrüßung) endet mit einer Zeile "💡 Feedback:" auf Arabisch — 1 kurzer, konkreter Satz zu einem Grammatik- oder Wortschatzpunkt aus der letzten Antwort des Kandidaten.\n' +
     '- Antworte IMMER auf Deutsch (B2-Niveau, klar und natürlich). Falls der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren — das zählt nicht als eine der 2 Fragen.\n' +
     '- Sei unterstützend und ermutigend, wie eine echte, freundliche Prüferin.\n' +
@@ -11598,11 +11603,9 @@ async function afkarMoveGroup(id, direction) {
   var _t2Stage = 'greeting';
   var _t2Topic = null; // الموضوع الحقيقي المختار من بنك اختبارات Teil 2
 
-  // يختار اختباراً حقيقياً عشوائياً من بنك Teil 2 (نفس الاختبارات التي يراها المستخدم في صفحة Teil 2)
-  function t2PickRandomTopic() {
-    var exams = (typeof mdt2GetExams === 'function') ? mdt2GetExams() : [];
-    if (!exams || !exams.length) return null;
-    var ex = exams[Math.floor(Math.random() * exams.length)];
+  // يبني كائن الموضوع (topic) من اختبار محدد — يُستخدم من الاختيار العشوائي والاختيار اليدوي
+  function t2BuildTopicFromExam(ex) {
+    if (!ex) return null;
     var meinungen = (ex.meinungen || (ex.meinung ? [ex.meinung] : [])).filter(Boolean);
     var erfahrungen = (ex.erfahrungen || (ex.erfahrung ? [ex.erfahrung] : [])).filter(Boolean);
     var vorteile = (ex.vorteile || []).filter(Boolean);
@@ -11616,6 +11619,14 @@ async function afkarMoveGroup(id, direction) {
       vorteil: vorteile[Math.floor(Math.random() * vorteile.length)] || '',
       nachteil: nachteile[Math.floor(Math.random() * nachteile.length)] || ''
     };
+  }
+
+  // يختار اختباراً حقيقياً عشوائياً من بنك Teil 2 (نفس الاختبارات التي يراها المستخدم في صفحة Teil 2)
+  function t2PickRandomTopic() {
+    var exams = (typeof mdt2GetExams === 'function') ? mdt2GetExams() : [];
+    if (!exams || !exams.length) return null;
+    var ex = exams[Math.floor(Math.random() * exams.length)];
+    return t2BuildTopicFromExam(ex);
   }
 
   // يبني البرومبت الأساسي لـ Teil 2 اعتماداً على الموضوع الحقيقي المختار
@@ -11649,7 +11660,7 @@ async function afkarMoveGroup(id, direction) {
       'REGELN:\n' +
       '- Du stellst IMMER nur eine Frage pro Antwort, niemals mehr.\n' +
       '- Du gehst NIE über die 4 Fragen hinaus (Inhalt, Meinung, Erfahrung, Vorteil/Nachteil), auch wenn der Kandidat kurz antwortet.\n' +
-      '- LÄNGE & EINFACHHEIT DER FRAGE (SEHR WICHTIG): Jede Frage muss KURZ und EINFACH sein — maximal 12-15 Wörter, EIN einziger Gedanke, EIN Fragezeichen. Baue KEINE Schachtelsätze mit mehreren Nebensätzen oder Aufzählungen in die Frage ein. Falls du einen kurzen Übergangskommentar voranstellst, halte ihn auf maximal 1 sehr kurzen Satz (max. 8-10 Wörter).\n' +
+      '- LÄNGE & EINFACHHEIT DER FRAGE (SEHR WICHTIG): Jede Frage muss KURZ und EINFACH sein — maximal 12-15 Wörter, EIN einziger Gedanke, EIN Fragezeichen. Baue KEINE Schachtelsätze mit mehreren Nebensätzen oder Aufzählungen in die Frage ein. ABSOLUT VERBOTEN: Beginne NIEMALS mit einem Dank, Lob oder Kommentar wie "Vielen Dank", "Das war sehr interessant" o.ä. — stelle die Frage DIREKT ohne jede Einleitung.\n' +
       '- Jede deine Antwort (außer der Begrüßung) endet mit einer Zeile "💡 Feedback:" auf Arabisch — 1 kurzer, konkreter Satz zu einem Grammatik- oder Wortschatzpunkt aus der letzten Antwort des Kandidaten.\n' +
       '- Antworte IMMER auf Deutsch (B2-Niveau, klar und natürlich). Falls der Kandidat auf Arabisch antwortet, bitte ihn höflich auf Deutsch fortzufahren — das zählt nicht als eine der 4 Fragen.\n' +
       '- Sei unterstützend und ermutigend, wie eine echte, freundliche Prüferin.\n' +
@@ -11914,14 +11925,51 @@ async function afkarMoveGroup(id, direction) {
     if (micBtn) micBtn.disabled = false;
     aiUpdateScores();
     aiSetMicState('idle');
-    // أعد إظهار شاشة البداية
+    // أعد إظهار شاشة البداية (أو قائمة اختيار الموضوع إن كان Teil 2 وما زال بدون اختيار)
     var startScreen = document.getElementById('ai-start-screen');
     var micCenter = document.getElementById('ai-mic-center');
     var headerCard = document.getElementById('ai-chat-header-card');
-    if (startScreen) startScreen.style.display = 'flex';
     if (micCenter) micCenter.style.display = 'none';
     if (headerCard) headerCard.style.display = 'none';
+    var t2Exams = (typeof mdt2GetExams === 'function') ? mdt2GetExams() : [];
+    if (_aiTeil === 't2' && t2Exams && t2Exams.length) {
+      if (startScreen) startScreen.style.display = 'none';
+      t2ShowPicker(t2Exams);
+    } else {
+      var picker = document.getElementById('ai-t2-picker');
+      if (picker) picker.style.display = 'none';
+      if (startScreen) startScreen.style.display = 'flex';
+    }
     aiUpdateQuotaDisplay();
+  };
+
+  // ── قائمة اختيار اختبار Teil 2 يدوياً (بدل الاختيار العشوائي التلقائي) ──
+  function t2ShowPicker(exams) {
+    var picker = document.getElementById('ai-t2-picker');
+    var list = document.getElementById('ai-t2-picker-list');
+    if (!picker || !list) return;
+    list.innerHTML = exams.map(function(ex, idx) {
+      return '<div class="exam-list-item" onclick="t2SelectTopic(' + idx + ')">' +
+        '<div class="exam-list-left">' +
+          '<span class="exam-list-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
+          '<div><div class="exam-list-name">' + escHtml(ex.name || 'بدون عنوان') + '</div></div>' +
+        '</div>' +
+        '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+      '</div>';
+    }).join('');
+    picker.style.display = 'block';
+  }
+
+  // ── المستخدم اختار اختباراً محدداً لـ Teil 2 ──
+  window.t2SelectTopic = function(idx) {
+    var exams = (typeof mdt2GetExams === 'function') ? mdt2GetExams() : [];
+    var ex = exams[idx];
+    if (!ex) return;
+    _t2Topic = t2BuildTopicFromExam(ex);
+    var picker = document.getElementById('ai-t2-picker');
+    if (picker) picker.style.display = 'none';
+    var startScreen = document.getElementById('ai-start-screen');
+    if (startScreen) startScreen.style.display = 'flex';
   };
 
   // ── عرض عدد جلسات AI المتبقية على شاشة البداية ──────────────────
@@ -12373,53 +12421,6 @@ async function afkarMoveGroup(id, direction) {
     if (!_discardNextRecording) aiSetHint('⏳ جارٍ تحليل كلامك...');
   }
 
-  // ── بطاقة مراجعة النص المُفرَّغ من Whisper قبل احتسابه كإجابة رسمية ──
-  // (تحمي من هلوسة Whisper في تسجيلات قصيرة/غير واضحة — الطالب يشوف النص ويصحّحه أو يعيد التسجيل)
-  function aiShowTranscriptConfirm(text) {
-    var msgs = document.getElementById('ai-messages');
-    if (!msgs) return;
-    var wrap = document.createElement('div');
-    wrap.className = 'ai-transcript-confirm';
-    wrap.style.cssText = 'background:var(--card);border:1.5px dashed var(--accent);border-radius:14px;padding:.85rem;margin:.4rem 0;';
-    wrap.innerHTML =
-      '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.5rem;">🎤 هل هذا ما قلته بالضبط؟ عدّل النص إذا لزم:</div>' +
-      '<textarea class="ai-transcript-textarea" style="width:100%;min-height:64px;padding:.6rem .7rem;border:1px solid var(--border);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.87rem;direction:ltr;resize:vertical;"></textarea>' +
-      '<div style="display:flex;gap:.5rem;margin-top:.55rem;">' +
-        '<button class="ai-start-btn" style="flex:1;margin:0;padding:.6rem;font-size:.82rem;justify-content:center;" onclick="aiConfirmTranscript(this)">✅ إرسال هذا</button>' +
-        '<button class="ai-reset-btn" style="flex:1;margin:0;padding:.6rem;font-size:.82rem;" onclick="aiRetryTranscript(this)">🔁 أعد التسجيل</button>' +
-      '</div>';
-    msgs.appendChild(wrap);
-    var ta = wrap.querySelector('.ai-transcript-textarea');
-    ta.value = text;
-    msgs.scrollTop = msgs.scrollHeight;
-    ta.focus();
-  }
-
-  // ── المستخدم وافق على النص (بعد تعديله أو بدون) — يُرسل الآن فعلياً كإجابة ──
-  window.aiConfirmTranscript = function(btn) {
-    var wrap = btn.closest('.ai-transcript-confirm');
-    if (!wrap) return;
-    var ta = wrap.querySelector('.ai-transcript-textarea');
-    var finalText = (ta ? ta.value : '').trim();
-    wrap.remove();
-    if (!finalText) {
-      aiSetHint('⚠️ النص فارغ — اضغط المايك وحاول مرة أخرى');
-      var micBtn = document.getElementById('ai-mic-btn');
-      if (micBtn) micBtn.disabled = false;
-      return;
-    }
-    aiSubmitUserText(finalText);
-  };
-
-  // ── المستخدم رأى أن Whisper أخطأ ويريد إعادة التسجيل بدل تصحيح النص يدوياً ──
-  window.aiRetryTranscript = function(btn) {
-    var wrap = btn.closest('.ai-transcript-confirm');
-    if (wrap) wrap.remove();
-    var micBtn = document.getElementById('ai-mic-btn');
-    if (micBtn) micBtn.disabled = false;
-    aiSetHint('🎤 اضغط وتكلم مرة أخرى بصوت واضح');
-  };
-
   function aiSendToWhisper(blob) {
     var token = (window.__getToken ? window.__getToken() : null) || '';
     var formData = new FormData();
@@ -12442,11 +12443,9 @@ async function afkarMoveGroup(id, direction) {
     })
     .then(function(d) {
       if (d && d.text && d.text.trim()) {
-        aiSetHint('✅ تم التعرف على كلامك — راجعه قبل الإرسال');
-        // ✅ لا نرسل مباشرة: نعرض النص المُفرَّغ للمراجعة لأن Groq Whisper أحياناً
-        // "يهلوس" كلمات خاطئة (خصوصاً في تسجيلات قصيرة أو بصوت غير واضح)،
-        // وهذا يعطي الطالب فرصة يصحّح النص أو يعيد التسجيل قبل ما يُحتسب كإجابة رسمية.
-        aiShowTranscriptConfirm(d.text.trim());
+        aiSetHint('✅ تم التعرف على كلامك...');
+        // الزر يبقى معطّلاً هنا — aiSubmitUserText سيتولى حالته أثناء تفكير Frau Müller
+        setTimeout(function() { aiSubmitUserText(d.text.trim()); }, 200);
       } else {
         aiSetHint('❌ لم يُسمع كلام واضح — تأكد من الميكروفون وحاول مرة أخرى');
         var micBtn = document.getElementById('ai-mic-btn');
