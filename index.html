@@ -12105,30 +12105,44 @@ async function afkarMoveGroup(id, direction) {
     callAiApi(ratingPrompt, _aiHistory.slice(-8), function(reply) {
       var parsed = null;
       try {
-        var clean = reply.replace(/```json|```/g, '').trim();
+        var clean = reply.replace(/```json|```/gi, '').trim();
+        // ✅ لو الموديل ضاف كلام قبل/بعد الـ JSON رغم التعليمات، نستخرج أول جسم {...} فقط
+        var jsonMatch = clean.match(/\{[\s\S]*\}/);
+        if (jsonMatch) clean = jsonMatch[0];
         parsed = JSON.parse(clean);
-      } catch (e) { parsed = null; }
+      } catch (e) {
+        parsed = null;
+      }
 
       if (parsed && typeof parsed.score === 'number') {
         _aiRating = Math.max(0, Math.min(25, Math.round(parsed.score))) + '/25';
         aiUpdateScores();
         aiShowFinalReport(parsed.score, parsed.summary_ar || '');
       } else {
-        aiShowRatingErrorFallback();
+        // فشل تحليل رد الموديل نفسه (مو مشكلة شبكة) — نعرض النص الخام على الشاشة نفسها
+        // (بدل console.error) لأن DevTools ممنوع على هذا الموقع ولا يمكن فحصه من الموبايل
+        aiShowRatingErrorFallback('format', reply);
       }
-    }, function() {
-      aiShowRatingErrorFallback();
+    }, function(detail) {
+      aiShowRatingErrorFallback('network', detail);
     }, true);
   }
 
   // ── عند فشل طلب التقييم نفسه — لا تترك المستخدم في طريق مسدود ──
-  function aiShowRatingErrorFallback() {
+  function aiShowRatingErrorFallback(reason, rawDetail) {
     var msgs = document.getElementById('ai-messages');
     if (!msgs) return;
+    var label = (reason === 'format')
+      ? '⚠️ انتهت الجلسة، لكن الممتحنة رجّعت رداً غير مفهوم أثناء التقييم'
+      : '⚠️ انتهت الجلسة، لكن تعذّر إصدار التقييم بسبب خطأ في الاتصال';
+    // ✅ نعرض النص الخام (مقصوص) مباشرة على الشاشة — بديل عن console.error
+    // لأن DevTools ممنوع على الموقع ولا وصول لأدوات المطوّر من الموبايل
+    var debugText = (rawDetail || '').toString().substring(0, 300);
     var wrap = document.createElement('div');
     wrap.className = 'ai-final-report';
     wrap.innerHTML =
-      '<div class="ai-final-label">⚠️ انتهت الجلسة، لكن تعذّر إصدار التقييم بسبب خطأ في الاتصال</div>' +
+      '<div class="ai-final-label">' + label + '</div>' +
+      (debugText ? '<textarea readonly style="width:100%;min-height:70px;margin-top:.5rem;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font-size:.72rem;direction:ltr;color:var(--muted);background:var(--paper);" onclick="this.select()">' + debugText + '</textarea><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem;">👆 اضغط لتحديد النص وانسخه لو حبيت ترسله للمطوّر</div>' : '') +
       '<button class="ai-reset-btn" onclick="aiRetryRating()" style="margin-top:.6rem;">&#8634; أعد المحاولة</button>' +
       '<button class="ai-reset-btn" onclick="aiReset()" style="margin-top:.5rem;">جلسة جديدة</button>';
     msgs.appendChild(wrap);
@@ -12359,6 +12373,53 @@ async function afkarMoveGroup(id, direction) {
     if (!_discardNextRecording) aiSetHint('⏳ جارٍ تحليل كلامك...');
   }
 
+  // ── بطاقة مراجعة النص المُفرَّغ من Whisper قبل احتسابه كإجابة رسمية ──
+  // (تحمي من هلوسة Whisper في تسجيلات قصيرة/غير واضحة — الطالب يشوف النص ويصحّحه أو يعيد التسجيل)
+  function aiShowTranscriptConfirm(text) {
+    var msgs = document.getElementById('ai-messages');
+    if (!msgs) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'ai-transcript-confirm';
+    wrap.style.cssText = 'background:var(--card);border:1.5px dashed var(--accent);border-radius:14px;padding:.85rem;margin:.4rem 0;';
+    wrap.innerHTML =
+      '<div style="font-size:.74rem;color:var(--muted);margin-bottom:.5rem;">🎤 هل هذا ما قلته بالضبط؟ عدّل النص إذا لزم:</div>' +
+      '<textarea class="ai-transcript-textarea" style="width:100%;min-height:64px;padding:.6rem .7rem;border:1px solid var(--border);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.87rem;direction:ltr;resize:vertical;"></textarea>' +
+      '<div style="display:flex;gap:.5rem;margin-top:.55rem;">' +
+        '<button class="ai-start-btn" style="flex:1;margin:0;padding:.6rem;font-size:.82rem;justify-content:center;" onclick="aiConfirmTranscript(this)">✅ إرسال هذا</button>' +
+        '<button class="ai-reset-btn" style="flex:1;margin:0;padding:.6rem;font-size:.82rem;" onclick="aiRetryTranscript(this)">🔁 أعد التسجيل</button>' +
+      '</div>';
+    msgs.appendChild(wrap);
+    var ta = wrap.querySelector('.ai-transcript-textarea');
+    ta.value = text;
+    msgs.scrollTop = msgs.scrollHeight;
+    ta.focus();
+  }
+
+  // ── المستخدم وافق على النص (بعد تعديله أو بدون) — يُرسل الآن فعلياً كإجابة ──
+  window.aiConfirmTranscript = function(btn) {
+    var wrap = btn.closest('.ai-transcript-confirm');
+    if (!wrap) return;
+    var ta = wrap.querySelector('.ai-transcript-textarea');
+    var finalText = (ta ? ta.value : '').trim();
+    wrap.remove();
+    if (!finalText) {
+      aiSetHint('⚠️ النص فارغ — اضغط المايك وحاول مرة أخرى');
+      var micBtn = document.getElementById('ai-mic-btn');
+      if (micBtn) micBtn.disabled = false;
+      return;
+    }
+    aiSubmitUserText(finalText);
+  };
+
+  // ── المستخدم رأى أن Whisper أخطأ ويريد إعادة التسجيل بدل تصحيح النص يدوياً ──
+  window.aiRetryTranscript = function(btn) {
+    var wrap = btn.closest('.ai-transcript-confirm');
+    if (wrap) wrap.remove();
+    var micBtn = document.getElementById('ai-mic-btn');
+    if (micBtn) micBtn.disabled = false;
+    aiSetHint('🎤 اضغط وتكلم مرة أخرى بصوت واضح');
+  };
+
   function aiSendToWhisper(blob) {
     var token = (window.__getToken ? window.__getToken() : null) || '';
     var formData = new FormData();
@@ -12381,9 +12442,11 @@ async function afkarMoveGroup(id, direction) {
     })
     .then(function(d) {
       if (d && d.text && d.text.trim()) {
-        aiSetHint('✅ تم التعرف على كلامك...');
-        // الزر يبقى معطّلاً هنا — aiSubmitUserText سيتولى حالته أثناء تفكير Frau Müller
-        setTimeout(function() { aiSubmitUserText(d.text.trim()); }, 200);
+        aiSetHint('✅ تم التعرف على كلامك — راجعه قبل الإرسال');
+        // ✅ لا نرسل مباشرة: نعرض النص المُفرَّغ للمراجعة لأن Groq Whisper أحياناً
+        // "يهلوس" كلمات خاطئة (خصوصاً في تسجيلات قصيرة أو بصوت غير واضح)،
+        // وهذا يعطي الطالب فرصة يصحّح النص أو يعيد التسجيل قبل ما يُحتسب كإجابة رسمية.
+        aiShowTranscriptConfirm(d.text.trim());
       } else {
         aiSetHint('❌ لم يُسمع كلام واضح — تأكد من الميكروفون وحاول مرة أخرى');
         var micBtn = document.getElementById('ai-mic-btn');
