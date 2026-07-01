@@ -12313,7 +12313,7 @@ async function afkarMoveGroup(id, direction) {
     wrap.className = 'ai-final-report';
     wrap.innerHTML =
       '<div class="ai-final-label">' + label + '</div>' +
-      (debugText ? '<textarea readonly style="width:100%;min-height:70px;margin-top:.5rem;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font-size:.72rem;direction:ltr;color:var(--muted);background:var(--paper);" onclick="this.select()">' + debugText + '</textarea><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem;">👆 اضغط لتحديد النص وانسخه لو حبيت ترسله للمطوّر</div>' : '') +
+      (debugText ? '<textarea readonly dir="auto" style="width:100%;min-height:70px;margin-top:.5rem;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font-size:.72rem;color:var(--muted);background:var(--paper);" onclick="this.select()">' + debugText + '</textarea><div style="font-size:.68rem;color:var(--muted);margin-top:.2rem;">👆 اضغط لتحديد النص وانسخه لو حبيت ترسله للمطوّر</div>' : '') +
       '<button class="ai-reset-btn" onclick="aiRetryRating()" style="margin-top:.6rem;">&#8634; أعد المحاولة</button>' +
       '<button class="ai-reset-btn" onclick="aiReset()" style="margin-top:.5rem;">جلسة جديدة</button>';
     msgs.appendChild(wrap);
