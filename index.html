@@ -2635,8 +2635,11 @@ applyHv3AdminData();</script>
     <div class="ai-messages" id="ai-messages"></div>
     <!-- قائمة اختيار اختبار Teil 2 يدوياً (تظهر فقط عند اختيار Teil 2 قبل بدء الجلسة) -->
     <div id="ai-t2-picker" style="display:none;">
-      <div style="font-size:.85rem;font-weight:700;margin-bottom:.75rem;color:var(--ink);">اختر الموضوع الذي تريد التحدث عنه:</div>
-      <div class="exam-list" id="ai-t2-picker-list"></div>
+      <div style="margin-bottom:1.2rem;">
+        <div style="font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;color:var(--ink);margin-bottom:.35rem;">اختر موضوعك</div>
+        <div style="font-size:.83rem;color:var(--muted);line-height:1.6;" id="ai-t2-picker-count">اختر أحد المواضيع الحقيقية من بنك امتحانات B2 لتتحدث عنه مع Frau Müller</div>
+      </div>
+      <div class="cards-grid" id="ai-t2-picker-list"></div>
     </div>
     <!-- شاشة البداية -->
     <div class="ai-start-screen" id="ai-start-screen">
@@ -11578,7 +11581,7 @@ async function afkarMoveGroup(id, direction) {
       case 'greeting':
         return 'AKTUELLE PHASE: Begrüßung. Sage GENAU diesen Text und nichts anderes: "Hallo und herzlich willkommen! Heute werden Sie ein Thema präsentieren, das Sie interessiert. Sie können zum Beispiel über ein Buch, einen Film, eine Reise oder eine wichtige Person sprechen.\nJetzt sind Sie dran: Welches Thema möchten Sie präsentieren, und warum?" — Verwende KEINESFALLS das Wort "Frage" in diesem Text (es ist noch keine der 2 offiziellen Fragen, nur eine Aufforderung zur Präsentation). Füge KEINE "💡 Feedback:"-Zeile hinzu.';
       case 'presentation':
-        return 'AKTUELLE PHASE: Der Kandidat hat gerade sein Thema präsentiert. Das war NOCH KEINE der 2 offiziellen Fragen — du hast bisher 0 von 2 Fragen gestellt. Stelle JETZT FRAGE 1 (die allererste der genau 2 offiziellen Fragen) zu einem Aspekt der Präsentation.';
+        return 'AKTUELLE PHASE: Der Kandidat hat gerade sein Thema präsentiert. Das war NOCH KEINE der 2 offiziellen Fragen — du hast bisher 0 von 2 Fragen gestellt. Stelle JETZT SOFORT FRAGE 1 (die allererste der genau 2 offiziellen Fragen) zu einem Aspekt der Präsentation — OHNE jede Einleitung. Beginne deine Antwort NICHT mit "Vielen Dank", "Das ist ein schönes/persönliches Thema", "Ich möchte mehr erfahren" oder Ähnlichem — das erste Wort deiner Antwort muss bereits Teil der Frage selbst sein.';
       case 'q1':
         return 'AKTUELLE PHASE: Der Kandidat hat soeben FRAGE 1 beantwortet (du hast jetzt 1 von 2 Fragen gestellt). Du MUSST jetzt noch FRAGE 2 stellen (die zweite und letzte Frage, ein anderer Aspekt des Themas) — schließe die Sitzung auf KEINEN FALL jetzt schon ab.';
       case 'q2':
@@ -11674,7 +11677,7 @@ async function afkarMoveGroup(id, direction) {
       case 'greeting':
         return 'AKTUELLE PHASE: Begrüßung. Sage GENAU diesen Text und nichts anderes: "Hallo! Ich bin Frau Müller, Ihre Prüferin. Können Sie den Inhalt des Textes zusammenfassen?" — Füge KEINE "💡 Feedback:"-Zeile hinzu.';
       case 'inhalt':
-        return 'AKTUELLE PHASE: Der Kandidat hat soeben den INHALT zusammengefasst. Stelle jetzt FRAGE 2 (die Meinungsfrage).';
+        return 'AKTUELLE PHASE: Der Kandidat hat soeben den INHALT zusammengefasst. Stelle JETZT SOFORT FRAGE 2 (die Meinungsfrage) — OHNE jede Einleitung. Beginne NICHT mit "Vielen Dank", "Das ist interessant" oder Ähnlichem — das erste Wort muss bereits Teil der Frage sein.';
       case 'meinung':
         return 'AKTUELLE PHASE: Der Kandidat hat soeben seine MEINUNG geäußert. Stelle jetzt FRAGE 3 (die Erfahrungsfrage).';
       case 'erfahrung':
@@ -11947,14 +11950,21 @@ async function afkarMoveGroup(id, direction) {
   function t2ShowPicker(exams) {
     var picker = document.getElementById('ai-t2-picker');
     var list = document.getElementById('ai-t2-picker-list');
+    var countLine = document.getElementById('ai-t2-picker-count');
     if (!picker || !list) return;
+    if (countLine) countLine.textContent = 'لديك ' + exams.length + ' موضوعاً حقيقياً من بنك امتحانات B2 — اختر ما يناسبك للتحدث عنه مع Frau Müller';
     list.innerHTML = exams.map(function(ex, idx) {
-      return '<div class="exam-list-item" onclick="t2SelectTopic(' + idx + ')">' +
-        '<div class="exam-list-left">' +
-          '<span class="exam-list-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
-          '<div><div class="exam-list-name">' + escHtml(ex.name || 'بدون عنوان') + '</div></div>' +
+      var excerpt = ex.text ? escHtml(ex.text.length > 90 ? ex.text.slice(0, 90).trim() + '…' : ex.text) : 'تحدّث عن هذا الموضوع مع الممتحنة الذكية وأجب عن 4 أسئلة حوله.';
+      return '<div class="task-card" onclick="t2SelectTopic(' + idx + ')">' +
+        '<div style="font-family:\'Playfair Display\',serif;font-size:1.7rem;font-weight:900;color:var(--accent);line-height:1;margin-bottom:.55rem;">' + String(idx + 1).padStart(2, '0') + '</div>' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.35rem;gap:.5rem;">' +
+          '<div class="u-playfair-135">' + escHtml(ex.name || 'بدون عنوان') + '</div>' +
+          '<div style="font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);white-space:nowrap;margin-top:.25rem;flex-shrink:0;">GESPRÄCH</div>' +
         '</div>' +
-        '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+        '<div class="u-card-desc">' + excerpt + '</div>' +
+        '<div style="border-top:1px solid var(--border);padding-top:.75rem;display:flex;align-items:center;justify-content:flex-end;">' +
+          '<div class="card-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+        '</div>' +
       '</div>';
     }).join('');
     picker.style.display = 'block';
@@ -12046,6 +12056,32 @@ async function afkarMoveGroup(id, direction) {
   }
 
   // ── Submit user text ───────────────────────────────────────────
+  // ── طبقة حماية إضافية: تشيل عبارات الشكر/المجاملة التمهيدية لو الموديل تجاهل التعليمات ──
+  // (احتياط لأن Haiku أحياناً ما يلتزم 100% بمنع الإطالة رغم التعليمات الصريحة بالبرومبت)
+  function aiStripLeadingFiller(text) {
+    var fillerPatterns = [
+      /^vielen dank[^.!?\n]*[.!?]\s*/i,
+      /^danke[^.!?\n]*[.!?]\s*/i,
+      /^schön,?\s*dass sie[^.!?\n]*[.!?]\s*/i,
+      /^das (ist|war)\s+(ein|sehr)[^.!?\n]*[.!?]\s*/i,
+      /^ich möchte (sie\s*)?(jetzt\s*)?(gerne\s*)?(noch\s*)?(mehr\s*)?[^.!?\n]*[.!?]\s*/i
+    ];
+    var loops = 0;
+    var changed = true;
+    while (changed && loops < 4) {
+      changed = false;
+      for (var i = 0; i < fillerPatterns.length; i++) {
+        var m = text.match(fillerPatterns[i]);
+        if (m) {
+          var rest = text.slice(m[0].length).trim();
+          if (rest.length > 5) { text = rest; changed = true; }
+        }
+      }
+      loops++;
+    }
+    return text;
+  }
+
   function aiSubmitUserText(text) {
     if (_aiLoading || _sessionEnded) return;
     aiAppendMessage('user', text);
@@ -12079,6 +12115,12 @@ async function afkarMoveGroup(id, direction) {
         }
         // السقف الأعلى الصارم — أغلق دائماً عند الوصول للحد الأقصى حتى لو غاب الماركر
         if (_t3TurnCount >= T3_MAX_TURNS) t3AgreementReached = true;
+      }
+
+      // ✅ حماية إضافية: شيل أي جملة شكر/مجاملة تمهيدية تجاهل الموديل منعها
+      // (لا تُطبَّق في مرحلة الختام لأن الشكر هناك مطلوب فعلاً)
+      if ((_aiTeil === 't1' || _aiTeil === 't2') && !wasLastStage) {
+        reply = aiStripLeadingFiller(reply);
       }
 
       aiAppendMessage('bot', reply);
