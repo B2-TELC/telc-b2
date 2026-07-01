@@ -11609,6 +11609,7 @@ async function afkarMoveGroup(id, direction) {
   // المراحل: greeting → inhalt → meinung → erfahrung → vorteilnachteil → closing → done
   var _t2Stage = 'greeting';
   var _t2Topic = null; // الموضوع الحقيقي المختار من بنك اختبارات Teil 2
+  var _t2TopicIdx = null; // فهرس الموضوع في البنك — يُستخدم لحفظ/عرض نتيجة هذا الاختبار تحديداً
 
   // يبني كائن الموضوع (topic) من اختبار محدد — يُستخدم من الاختيار العشوائي والاختيار اليدوي
   function t2BuildTopicFromExam(ex) {
@@ -11632,8 +11633,9 @@ async function afkarMoveGroup(id, direction) {
   function t2PickRandomTopic() {
     var exams = (typeof mdt2GetExams === 'function') ? mdt2GetExams() : [];
     if (!exams || !exams.length) return null;
-    var ex = exams[Math.floor(Math.random() * exams.length)];
-    return t2BuildTopicFromExam(ex);
+    var idx = Math.floor(Math.random() * exams.length);
+    _t2TopicIdx = idx;
+    return t2BuildTopicFromExam(exams[idx]);
   }
 
   // يبني البرومبت الأساسي لـ Teil 2 اعتماداً على الموضوع الحقيقي المختار
@@ -11728,6 +11730,7 @@ async function afkarMoveGroup(id, direction) {
   // لا توجد مراحل ثابتة كما في Teil 1/2 لأن Teil 3 نقاش حر — الموديل نفسه يقرر متى تم الوصول لاتفاق طبيعي
   // ضمن نطاق مرن (4-8 تبادلات) بدل رقم ثابت، مع سقف أعلى صارم يضمن إنهاء الجلسة دائماً
   var _t3Topic = null; // الموضوع الحقيقي المختار من بنك اختبارات Teil 3
+  var _t3TopicIdx = null; // فهرس الموضوع في البنك — يُستخدم لحفظ/عرض نتيجة هذا الاختبار تحديداً
   var _t3TurnCount = 0; // عدد ردود المستخدم في هذه الجلسة
   var T3_MIN_TURNS = 4;  // أقل عدد تبادلات قبل قبول إشارة "تم الاتفاق" من الموديل
   var T3_MAX_TURNS = 8;  // سقف صارم — تُغلق الجلسة دائماً عند هذا العدد حتى لو لم يُصدر الموديل إشارة الاتفاق
@@ -11750,8 +11753,9 @@ async function afkarMoveGroup(id, direction) {
   function t3PickRandomTopic() {
     var exams = (typeof mdt3GetExams === 'function') ? mdt3GetExams() : [];
     if (!exams || !exams.length) return null;
-    var ex = exams[Math.floor(Math.random() * exams.length)];
-    return t3BuildTopicFromExam(ex);
+    var idx = Math.floor(Math.random() * exams.length);
+    _t3TopicIdx = idx;
+    return t3BuildTopicFromExam(exams[idx]);
   }
 
   // يبني البرومبت الأساسي لـ Teil 3 اعتماداً على الموضوع الحقيقي المختار
@@ -11924,7 +11928,9 @@ async function afkarMoveGroup(id, direction) {
     _t1Stage = 'greeting';
     _t2Stage = 'greeting';
     _t2Topic = null;
+    _t2TopicIdx = null;
     _t3Topic = null;
+    _t3TopicIdx = null;
     _t3TurnCount = 0;
     // امسح واجهة المحادثة
     var msgs = document.getElementById('ai-messages');
@@ -11970,12 +11976,19 @@ async function afkarMoveGroup(id, direction) {
     var list = document.getElementById('ai-t2-picker-list');
     if (!picker || !list) return;
     list.innerHTML = exams.map(function(ex, idx) {
+      var score = (typeof getExamScore === 'function') ? getExamScore('ai_t2_' + idx) : null;
+      var scoreBadge = (score !== null && score !== undefined)
+        ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:' + scoreColor(score) + ';color:white;font-family:\'DM Mono\',monospace;font-size:.68rem;font-weight:700;border-radius:100px;padding:.18rem .55rem;white-space:nowrap;min-width:46px;letter-spacing:.03em;margin-left:.5rem;">' + score + '/25</span>'
+        : '';
       return '<div class="exam-list-item" onclick="t2SelectTopic(' + idx + ')">' +
         '<div class="exam-list-left">' +
           '<span class="exam-list-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
           '<div><div class="exam-list-name">' + escHtml(ex.name || 'بدون عنوان') + '</div></div>' +
         '</div>' +
-        '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+        '<div style="display:flex;align-items:center;">' +
+          scoreBadge +
+          '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+        '</div>' +
       '</div>';
     }).join('');
     picker.style.display = 'block';
@@ -11987,6 +12000,7 @@ async function afkarMoveGroup(id, direction) {
     var ex = exams[idx];
     if (!ex) return;
     _t2Topic = t2BuildTopicFromExam(ex);
+    _t2TopicIdx = idx;
     var picker = document.getElementById('ai-t2-picker');
     if (picker) picker.style.display = 'none';
     var startScreen = document.getElementById('ai-start-screen');
@@ -11999,12 +12013,19 @@ async function afkarMoveGroup(id, direction) {
     var list = document.getElementById('ai-t3-picker-list');
     if (!picker || !list) return;
     list.innerHTML = exams.map(function(ex, idx) {
+      var score = (typeof getExamScore === 'function') ? getExamScore('ai_t3_' + idx) : null;
+      var scoreBadge = (score !== null && score !== undefined)
+        ? '<span style="display:inline-flex;align-items:center;justify-content:center;background:' + scoreColor(score) + ';color:white;font-family:\'DM Mono\',monospace;font-size:.68rem;font-weight:700;border-radius:100px;padding:.18rem .55rem;white-space:nowrap;min-width:46px;letter-spacing:.03em;margin-left:.5rem;">' + score + '/25</span>'
+        : '';
       return '<div class="exam-list-item" onclick="t3SelectTopic(' + idx + ')">' +
         '<div class="exam-list-left">' +
           '<span class="exam-list-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
           '<div><div class="exam-list-name">' + escHtml(ex.name || 'بدون عنوان') + '</div></div>' +
         '</div>' +
-        '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+        '<div style="display:flex;align-items:center;">' +
+          scoreBadge +
+          '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+        '</div>' +
       '</div>';
     }).join('');
     picker.style.display = 'block';
@@ -12016,6 +12037,7 @@ async function afkarMoveGroup(id, direction) {
     var ex = exams[idx];
     if (!ex) return;
     _t3Topic = t3BuildTopicFromExam(ex);
+    _t3TopicIdx = idx;
     var picker = document.getElementById('ai-t3-picker');
     if (picker) picker.style.display = 'none';
     var startScreen = document.getElementById('ai-start-screen');
@@ -12292,10 +12314,18 @@ async function afkarMoveGroup(id, direction) {
     var msgs = document.getElementById('ai-messages');
     if (!msgs) return;
     var teilLabel = (_aiTeil === 't2') ? 'Teil 2' : (_aiTeil === 't3') ? 'Teil 3' : 'Teil 1';
+    var roundedScore = Math.round(score);
+    // ✅ نفس نظام تلوين النتيجة المستخدم في اختبارات Leseverstehen (على 25 نقطة): أخضر/برتقالي/أحمر
+    var badgeColor = (typeof scoreColor === 'function') ? scoreColor(roundedScore) : 'var(--accent)';
+    // ✅ احفظ النتيجة مرتبطة بهذا الموضوع تحديداً — عشان تظهر بجانب اسمه في قائمة الاختيار لاحقاً (زي Leseverstehen)
+    if (typeof saveExamScore === 'function') {
+      if (_aiTeil === 't2' && _t2TopicIdx !== null) saveExamScore('ai_t2_' + _t2TopicIdx, roundedScore);
+      if (_aiTeil === 't3' && _t3TopicIdx !== null) saveExamScore('ai_t3_' + _t3TopicIdx, roundedScore);
+    }
     var wrap = document.createElement('div');
     wrap.className = 'ai-final-report';
     wrap.innerHTML =
-      '<div class="ai-final-score">' + Math.round(score) + '<span>/25</span></div>' +
+      '<div class="ai-final-score" style="color:' + badgeColor + ';">' + roundedScore + '<span>/25</span></div>' +
       '<div class="ai-final-label">📋 التقييم النهائي — ' + teilLabel + '</div>' +
       (summaryAr ? '<div class="ai-final-summary">' + escHtml(summaryAr) + '</div>' : '') +
       '<button class="ai-reset-btn" onclick="aiReset()" style="margin-top:.75rem;">&#8634; جلسة جديدة</button>';
@@ -12339,7 +12369,7 @@ async function afkarMoveGroup(id, direction) {
   var _speechMs = 0;
   var _vadLastTs = 0;
   var _maxRecordTimer = null;
-  var VAD_SILENCE_THRESHOLD = 0.012; // عتبة RMS (0..1) — نزّلها لـ0.008 لو بترفض كلاماً حقيقياً خافتاً، ارفعها لـ0.02 لو بتقبل ضجيج خلفية
+  var VAD_SILENCE_THRESHOLD = 0.008; // عتبة RMS (0..1) — نُزّلت من 0.012 لتقليل رفض كلام حقيقي خافت أو مايك بحساسية منخفضة
   var VAD_MIN_SPEECH_MS = 300;       // أقل مجموع زمن "كلام فعلي" (فوق العتبة) مطلوب لقبول التسجيل
   var MAX_RECORD_MS = 90000;         // حد أقصى لمدة تسجيل واحد (حماية من استنزاف الكريدت بمقاطع ضخمة)
 
