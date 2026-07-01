@@ -11533,6 +11533,9 @@ async function afkarMoveGroup(id, direction) {
 // ====== AI CHAT — KI-PRÜFERIN =====================================
 (function() {
   var _aiTeil = 't1';
+  // ✅ عداد يزيد مع كل aiReset — يمنع ظهور رد API متأخر من جلسة/Teil سابق بعد ما المستخدم بدّل الجزء
+  // (مثال المشكلة: يبدأ جلسة Teil 3 ثم يرجع بسرعة لـ Teil 2 قبل ما يوصل رد الترحيب — كان يظهر خطأً في مكان Teil 2)
+  var _aiSessionEpoch = 0;
   var _aiHistory = [];
   var _aiTurns = 0;
   var _aiTotalWords = 0;
@@ -11910,6 +11913,8 @@ async function afkarMoveGroup(id, direction) {
 
   // ── Reset ──────────────────────────────────────────────────────
   window.aiReset = function() {
+    // ✅ أبطل أي طلب API معلّق من الجلسة/Teil السابق (لن تُقبل نتيجته حتى لو وصل متأخراً)
+    _aiSessionEpoch++;
     // أوقف أي صوت جارٍ وألغِ كل callbacks معلّقة
     _speakCallbackId++;
     aiStopSpeaking(); // أوقف الصوت الحالي وألغِ أي طلب TTS لم يكتمل بعد
@@ -12078,6 +12083,7 @@ async function afkarMoveGroup(id, direction) {
   function aiGetFirstMessage() {
     _aiLoading = true;
     aiSetHint('Frau Müller تستعد...');
+    var myEpoch = _aiSessionEpoch; // ✅ التقط رقم الجلسة الحالي قبل الطلب غير المتزامن
     if (_aiTeil === 't2') {
       if (!_t2Topic) _t2Topic = t2PickRandomTopic();
       t2RenderTopicCard(_t2Topic);
@@ -12087,6 +12093,8 @@ async function afkarMoveGroup(id, direction) {
       t3RenderTopicCard(_t3Topic);
     }
     callAiApi(getSystemPromptFor(_aiTeil), [], function(reply) {
+      // ✅ لو المستخدم بدّل Teil أو عمل Reset قبل ما يوصل الرد، تجاهل هذا الرد تماماً
+      if (myEpoch !== _aiSessionEpoch) return;
       _aiLoading = false;
       // الرسالة الأولى (ترحيب) لا يوجد فيها رد للمستخدم لتقييمه — احذف أي "💡 Feedback" قد يضيفه الموديل خطأً
       reply = reply.replace(/\n*💡\s*Feedback:[^\n]*/gi, '').trim();
@@ -12098,6 +12106,7 @@ async function afkarMoveGroup(id, direction) {
       // تتكلم أولاً ثم تفتح المايك
       aiSpeakThenEnableMic(reply);
     }, function(detail) {
+      if (myEpoch !== _aiSessionEpoch) return; // ✅ نفس الحماية لحالة الفشل
       _aiLoading = false;
       aiSetHint('❌ ' + (detail || 'ميزة التدرب مع ممتحنة AI تحت الصيانة (مشكلة 00)'));
     });
@@ -12164,8 +12173,11 @@ async function afkarMoveGroup(id, direction) {
     var systemPrompt = getSystemPromptFor(_aiTeil);
     var wasLastStage = (_aiTeil === 't1' && _t1Stage === 'q2') ||
                         (_aiTeil === 't2' && _t2Stage === 'vorteilnachteil');
+    var myEpoch = _aiSessionEpoch; // ✅ التقط رقم الجلسة الحالي قبل الطلب غير المتزامن
 
     callAiApi(systemPrompt, _aiHistory, function(reply) {
+      // ✅ لو المستخدم بدّل Teil أو عمل Reset قبل ما يوصل الرد، تجاهل هذا الرد تماماً
+      if (myEpoch !== _aiSessionEpoch) return;
       _aiLoading = false;
 
       // Teil 3: اكشف عن إشارة الاتفاق وأزلها من النص قبل العرض والنطق
@@ -12205,6 +12217,7 @@ async function afkarMoveGroup(id, direction) {
         aiSpeakThenEnableMic(reply);
       }
     }, function() {
+      if (myEpoch !== _aiSessionEpoch) return; // ✅ نفس الحماية لحالة الفشل
       _aiLoading = false;
       if (micBtn) micBtn.disabled = false;
       // فشل الطلب — تراجع عن زيادة عدّاد Teil 3 لأن لا رد فعلي تم استلامه
@@ -12253,8 +12266,13 @@ async function afkarMoveGroup(id, direction) {
     if (micCenter) micCenter.style.display = 'none';
 
     var ratingPrompt = (_aiTeil === 't2') ? RATING_PROMPT_T2 : (_aiTeil === 't3') ? RATING_PROMPT_T3 : RATING_PROMPT_T1;
+    // ✅ لقطة (snapshot) من الحالة الحالية — نستخدمها داخل الـ callback المتأخر
+    // بدل المتغيرات العامة الحية، لأنها ممكن تتغيّر لو المستخدم بدّل Teil أو عمل Reset قبل وصول الرد
+    var myEpoch = _aiSessionEpoch;
+    var snapTeil = _aiTeil;
 
     callAiApi(ratingPrompt, _aiHistory.slice(-8), function(reply) {
+      if (myEpoch !== _aiSessionEpoch) return; // ✅ تجاهل الرد لو المستخدم بدّل الجزء/عمل Reset
       var parsed = null;
       try {
         var clean = reply.replace(/```json|```/gi, '').trim();
@@ -12276,6 +12294,7 @@ async function afkarMoveGroup(id, direction) {
         aiShowRatingErrorFallback('format', reply);
       }
     }, function(detail) {
+      if (myEpoch !== _aiSessionEpoch) return; // ✅ نفس الحماية لحالة الفشل
       aiShowRatingErrorFallback('network', detail);
     }, true);
   }
