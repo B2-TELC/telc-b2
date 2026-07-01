@@ -12173,8 +12173,65 @@ async function afkarMoveGroup(id, direction) {
   var _micStream = null;
   var _micStarting = false; // يمنع بدء تسجيلين متوازيين بسبب نقرة مزدوجة/touch+click على نفس الزر
 
+  // ── VAD (Voice Activity Detection) ────────────────────────────
+  // يراقب مستوى الصوت (RMS) لحظياً أثناء التسجيل، ويرفض إرسال المقاطع
+  // التي لا تحتوي كلاماً حقيقياً (صمت/ضجيج خلفية) إلى Whisper، لأن Whisper
+  // "يهلوس" نصاً عشوائياً على هذا النوع من المدخلات (مثال: "Verlagt ein, da þrúi.")
+  var _vadAudioCtx = null;
+  var _vadAnalyser = null;
+  var _vadSource = null;
+  var _vadRAF = null;
+  var _vadData = null;
+  var _speechMs = 0;
+  var _vadLastTs = 0;
+  var _maxRecordTimer = null;
+  var VAD_SILENCE_THRESHOLD = 0.012; // عتبة RMS (0..1) — نزّلها لـ0.008 لو بترفض كلاماً حقيقياً خافتاً، ارفعها لـ0.02 لو بتقبل ضجيج خلفية
+  var VAD_MIN_SPEECH_MS = 300;       // أقل مجموع زمن "كلام فعلي" (فوق العتبة) مطلوب لقبول التسجيل
+  var MAX_RECORD_MS = 90000;         // حد أقصى لمدة تسجيل واحد (حماية من استنزاف الكريدت بمقاطع ضخمة)
+
+  function _vadStart(stream) {
+    try {
+      _vadAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      _vadAnalyser = _vadAudioCtx.createAnalyser();
+      _vadAnalyser.fftSize = 512;
+      _vadSource = _vadAudioCtx.createMediaStreamSource(stream);
+      _vadSource.connect(_vadAnalyser);
+      _vadData = new Uint8Array(_vadAnalyser.fftSize);
+      _speechMs = 0;
+      _vadLastTs = performance.now();
+      var loop = function() {
+        if (!_vadAnalyser) return; // تم الإيقاف
+        var now = performance.now();
+        var dt = now - _vadLastTs;
+        _vadLastTs = now;
+        _vadAnalyser.getByteTimeDomainData(_vadData);
+        var sumSquares = 0;
+        for (var i = 0; i < _vadData.length; i++) {
+          var v = (_vadData[i] - 128) / 128;
+          sumSquares += v * v;
+        }
+        var rms = Math.sqrt(sumSquares / _vadData.length);
+        if (rms > VAD_SILENCE_THRESHOLD) _speechMs += dt;
+        _vadRAF = requestAnimationFrame(loop);
+      };
+      _vadRAF = requestAnimationFrame(loop);
+    } catch (e) {
+      // لو تحليل الصوت فشل (متصفح لا يدعم)، تجاهل VAD ولا تمنع التسجيل العادي
+      _vadAnalyser = null;
+    }
+  }
+
+  function _vadStop() {
+    if (_vadRAF) { cancelAnimationFrame(_vadRAF); _vadRAF = null; }
+    if (_vadSource) { try { _vadSource.disconnect(); } catch(e) {} _vadSource = null; }
+    _vadAnalyser = null;
+    if (_vadAudioCtx) { try { _vadAudioCtx.close(); } catch(e) {} _vadAudioCtx = null; }
+  }
+
   // ينظّف أي تسجيل/ستريم سابق عالق (مثلاً من سباق توقيت سابق) قبل بدء تسجيل جديد
   function _aiCleanupRecorder() {
+    if (_maxRecordTimer) { clearTimeout(_maxRecordTimer); _maxRecordTimer = null; }
+    _vadStop();
     if (_mediaRecorder) {
       try {
         _mediaRecorder.ondataavailable = null;
@@ -12191,6 +12248,7 @@ async function afkarMoveGroup(id, direction) {
 
   var _recordStartTs = 0;
   var _discardNextRecording = false;
+  var _discardReason = ''; // 'short' | 'silence'
   var MIN_RECORD_MS = 600; // أقل مدة تسجيل مقبولة — أقصر من هذا يُهمَل بدل إرساله لـ Whisper
 
   function aiStartRecording() {
@@ -12229,7 +12287,12 @@ async function afkarMoveGroup(id, direction) {
           if (_discardNextRecording) {
             _discardNextRecording = false;
             _audioChunks = [];
-            aiSetHint('🎤 اضغط مطولاً وتكلم لفترة أطول قليلاً');
+            if (_discardReason === 'silence') {
+              aiSetHint('🎤 لم يُسمع كلام واضح — اقترب من المايك وتكلم بصوت أعلى قليلاً');
+            } else {
+              aiSetHint('🎤 اضغط مطولاً وتكلم لفترة أطول قليلاً');
+            }
+            _discardReason = '';
             if (micBtn) micBtn.disabled = false;
             return;
           }
@@ -12246,6 +12309,10 @@ async function afkarMoveGroup(id, direction) {
         _mediaRecorder.start();
         _recordStartTs = Date.now();
         _isRecording = true;
+        _vadStart(stream); // ابدأ مراقبة مستوى الصوت لحظياً (VAD)
+        _maxRecordTimer = setTimeout(function() {
+          if (_isRecording) aiStopRecording(); // حد أقصى 60 ثانية — حماية من مقاطع ضخمة تستنزف الكريدت
+        }, MAX_RECORD_MS);
         if (micBtn) micBtn.disabled = false; // فعّل الزر الآن للسماح بالضغط لإيقاف التسجيل
         aiSetMicState('recording');
         aiSetHint('🔴 جارٍ الاستماع... تكلم ثم اضغط للإيقاف');
@@ -12258,8 +12325,20 @@ async function afkarMoveGroup(id, direction) {
   }
 
   function aiStopRecording() {
+    if (_maxRecordTimer) { clearTimeout(_maxRecordTimer); _maxRecordTimer = null; }
+    _vadStop(); // أوقف مراقبة الصوت؛ _speechMs يحمل الآن إجمالي زمن الكلام الفعلي المكتشف
     // تسجيل أقصر من الحد الأدنى (ضغطة وإفلات سريعة) — لا تُرسله لـ Whisper كي لا "يهلوس" نصاً عشوائياً
-    _discardNextRecording = (Date.now() - _recordStartTs) < MIN_RECORD_MS;
+    if ((Date.now() - _recordStartTs) < MIN_RECORD_MS) {
+      _discardNextRecording = true;
+      _discardReason = 'short';
+    } else if (_speechMs < VAD_MIN_SPEECH_MS) {
+      // مدة كافية لكن بدون كلام حقيقي فوق العتبة — صمت أو ضجيج خلفية فقط
+      _discardNextRecording = true;
+      _discardReason = 'silence';
+    } else {
+      _discardNextRecording = false;
+      _discardReason = '';
+    }
     if (_mediaRecorder && _mediaRecorder.state !== 'inactive') {
       _mediaRecorder.stop();
     }
