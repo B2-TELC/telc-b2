@@ -11584,7 +11584,13 @@ async function afkarMoveGroup(id, direction) {
   }
 
   function t1BuildPrompt(stage) {
-    return T1_BASE_PROMPT + '\n\n' + t1StageInstruction(stage);
+    // ✅ تعليمة "المرحلة الحالية" تُوضع في الأول (أعلى وزن انتباه للموديل)،
+    // لأن Haiku كان يتجاهلها أحياناً لما تكون في آخر برومبت طويل ويرجع يكرر خطوة "الترحيب" (Schritt 1)
+    // حتى بعد ما الطالب قدّم عرضه فعلاً.
+    return t1StageInstruction(stage) + '\n\n' + T1_BASE_PROMPT +
+      '\n\nERINNERUNG (SEHR WICHTIG): Die "AKTUELLE PHASE"-Anweisung ganz oben hat IMMER Vorrang vor der allgemeinen ABLAUF-Beschreibung. ' +
+      'Wiederhole NIEMALS die Begrüßung oder die ursprüngliche Aufforderung ("Welches Thema möchten Sie präsentieren...") erneut, wenn die aktuelle Phase nicht "greeting" ist — das wäre ein Fehler. ' +
+      'Schau IMMER auf die letzte Nachricht des Kandidaten (role: user) und beziehe dich in deiner Frage konkret auf einen Punkt daraus.';
   }
 
   // ── حالة الجلسة (State Machine) — Teil 2 ────────────────────────
@@ -11671,7 +11677,11 @@ async function afkarMoveGroup(id, direction) {
 
   function t2BuildPrompt(stage) {
     if (!_t2Topic) _t2Topic = t2PickRandomTopic() || { name: 'Allgemeines Thema', text: '', inhalt: '', meinung: '', erfahrung: '', vorteil: '', nachteil: '' };
-    return t2BuildBasePrompt(_t2Topic) + '\n\n' + t2StageInstruction(stage);
+    // ✅ نفس إصلاح Teil 1: تعليمة المرحلة الحالية أولاً + منع صريح لتكرار الترحيب
+    return t2StageInstruction(stage) + '\n\n' + t2BuildBasePrompt(_t2Topic) +
+      '\n\nERINNERUNG (SEHR WICHTIG): Die "AKTUELLE PHASE"-Anweisung ganz oben hat IMMER Vorrang. ' +
+      'Wiederhole NIEMALS die Begrüßung ("Hallo! Ich bin Frau Müller...") erneut, wenn die aktuelle Phase nicht "greeting" ist. ' +
+      'Beziehe dich in deiner Frage IMMER konkret auf die letzte Antwort des Kandidaten (role: user).';
   }
 
   // ينقل حالة Teil 2 للمرحلة التالية بعد كل رد من الطالب
