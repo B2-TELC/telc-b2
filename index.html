@@ -2635,11 +2635,15 @@ applyHv3AdminData();</script>
     <div class="ai-messages" id="ai-messages"></div>
     <!-- قائمة اختيار اختبار Teil 2 يدوياً (تظهر فقط عند اختيار Teil 2 قبل بدء الجلسة) -->
     <div id="ai-t2-picker" style="display:none;">
-      <div style="margin-bottom:1.2rem;">
-        <div style="font-family:'Playfair Display',serif;font-size:1.35rem;font-weight:700;color:var(--ink);margin-bottom:.35rem;">اختر موضوعك</div>
-        <div style="font-size:.83rem;color:var(--muted);line-height:1.6;" id="ai-t2-picker-count">اختر أحد المواضيع الحقيقية من بنك امتحانات B2 لتتحدث عنه مع Frau Müller</div>
-      </div>
-      <div class="cards-grid" id="ai-t2-picker-list"></div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700;color:var(--ink);margin-bottom:.3rem;">📋 اختر موضوع حديثك</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">هذه مواضيع حقيقية من بنك امتحانات Teil 2 — اختر واحداً لتتحدث عنه مع Frau Müller</div>
+      <div class="exam-list" id="ai-t2-picker-list"></div>
+    </div>
+    <!-- قائمة اختيار اختبار Teil 3 يدوياً (تظهر فقط عند اختيار Teil 3 قبل بدء الجلسة) -->
+    <div id="ai-t3-picker" style="display:none;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700;color:var(--ink);margin-bottom:.3rem;">📋 اختر مهمّة النقاش</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;">هذه مهام حقيقية من بنك امتحانات Teil 3 — اختر واحدة لتناقشها مع الشريك الافتراضي</div>
+      <div class="exam-list" id="ai-t3-picker-list"></div>
     </div>
     <!-- شاشة البداية -->
     <div class="ai-start-screen" id="ai-start-screen">
@@ -11729,11 +11733,9 @@ async function afkarMoveGroup(id, direction) {
   var T3_MAX_TURNS = 8;  // سقف صارم — تُغلق الجلسة دائماً عند هذا العدد حتى لو لم يُصدر الموديل إشارة الاتفاق
   var T3_AGREEMENT_MARKER = '[EINIGUNG_ERREICHT]'; // إشارة داخلية يضيفها الموديل عند الوصول لاتفاق طبيعي
 
-  // يختار اختباراً حقيقياً عشوائياً من بنك Teil 3 (نفس الاختبارات التي يراها المستخدم في صفحة Teil 3)
-  function t3PickRandomTopic() {
-    var exams = (typeof mdt3GetExams === 'function') ? mdt3GetExams() : [];
-    if (!exams || !exams.length) return null;
-    var ex = exams[Math.floor(Math.random() * exams.length)];
+  // يبني كائن الموضوع (topic) من اختبار محدد لـ Teil 3 — يُستخدم من الاختيار العشوائي والاختيار اليدوي
+  function t3BuildTopicFromExam(ex) {
+    if (!ex) return null;
     var steps = (ex.steps || []).filter(Boolean);
     var dialog = (ex.dialog || []).filter(Boolean);
     return {
@@ -11742,6 +11744,14 @@ async function afkarMoveGroup(id, direction) {
       steps: steps,
       dialog: dialog
     };
+  }
+
+  // يختار اختباراً حقيقياً عشوائياً من بنك Teil 3 (نفس الاختبارات التي يراها المستخدم في صفحة Teil 3)
+  function t3PickRandomTopic() {
+    var exams = (typeof mdt3GetExams === 'function') ? mdt3GetExams() : [];
+    if (!exams || !exams.length) return null;
+    var ex = exams[Math.floor(Math.random() * exams.length)];
+    return t3BuildTopicFromExam(ex);
   }
 
   // يبني البرومبت الأساسي لـ Teil 3 اعتماداً على الموضوع الحقيقي المختار
@@ -11928,19 +11938,27 @@ async function afkarMoveGroup(id, direction) {
     if (micBtn) micBtn.disabled = false;
     aiUpdateScores();
     aiSetMicState('idle');
-    // أعد إظهار شاشة البداية (أو قائمة اختيار الموضوع إن كان Teil 2 وما زال بدون اختيار)
+    // أعد إظهار شاشة البداية (أو قائمة اختيار الموضوع إن كان Teil 2/3 وما زال بدون اختيار)
     var startScreen = document.getElementById('ai-start-screen');
     var micCenter = document.getElementById('ai-mic-center');
     var headerCard = document.getElementById('ai-chat-header-card');
     if (micCenter) micCenter.style.display = 'none';
     if (headerCard) headerCard.style.display = 'none';
     var t2Exams = (typeof mdt2GetExams === 'function') ? mdt2GetExams() : [];
+    var t3Exams = (typeof mdt3GetExams === 'function') ? mdt3GetExams() : [];
+    var t2Picker = document.getElementById('ai-t2-picker');
+    var t3Picker = document.getElementById('ai-t3-picker');
     if (_aiTeil === 't2' && t2Exams && t2Exams.length) {
       if (startScreen) startScreen.style.display = 'none';
+      if (t3Picker) t3Picker.style.display = 'none';
       t2ShowPicker(t2Exams);
+    } else if (_aiTeil === 't3' && t3Exams && t3Exams.length) {
+      if (startScreen) startScreen.style.display = 'none';
+      if (t2Picker) t2Picker.style.display = 'none';
+      t3ShowPicker(t3Exams);
     } else {
-      var picker = document.getElementById('ai-t2-picker');
-      if (picker) picker.style.display = 'none';
+      if (t2Picker) t2Picker.style.display = 'none';
+      if (t3Picker) t3Picker.style.display = 'none';
       if (startScreen) startScreen.style.display = 'flex';
     }
     aiUpdateQuotaDisplay();
@@ -11950,21 +11968,14 @@ async function afkarMoveGroup(id, direction) {
   function t2ShowPicker(exams) {
     var picker = document.getElementById('ai-t2-picker');
     var list = document.getElementById('ai-t2-picker-list');
-    var countLine = document.getElementById('ai-t2-picker-count');
     if (!picker || !list) return;
-    if (countLine) countLine.textContent = 'لديك ' + exams.length + ' موضوعاً حقيقياً من بنك امتحانات B2 — اختر ما يناسبك للتحدث عنه مع Frau Müller';
     list.innerHTML = exams.map(function(ex, idx) {
-      var excerpt = ex.text ? escHtml(ex.text.length > 90 ? ex.text.slice(0, 90).trim() + '…' : ex.text) : 'تحدّث عن هذا الموضوع مع الممتحنة الذكية وأجب عن 4 أسئلة حوله.';
-      return '<div class="task-card" onclick="t2SelectTopic(' + idx + ')">' +
-        '<div style="font-family:\'Playfair Display\',serif;font-size:1.7rem;font-weight:900;color:var(--accent);line-height:1;margin-bottom:.55rem;">' + String(idx + 1).padStart(2, '0') + '</div>' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.35rem;gap:.5rem;">' +
-          '<div class="u-playfair-135">' + escHtml(ex.name || 'بدون عنوان') + '</div>' +
-          '<div style="font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);white-space:nowrap;margin-top:.25rem;flex-shrink:0;">GESPRÄCH</div>' +
+      return '<div class="exam-list-item" onclick="t2SelectTopic(' + idx + ')">' +
+        '<div class="exam-list-left">' +
+          '<span class="exam-list-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
+          '<div><div class="exam-list-name">' + escHtml(ex.name || 'بدون عنوان') + '</div></div>' +
         '</div>' +
-        '<div class="u-card-desc">' + excerpt + '</div>' +
-        '<div style="border-top:1px solid var(--border);padding-top:.75rem;display:flex;align-items:center;justify-content:flex-end;">' +
-          '<div class="card-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
-        '</div>' +
+        '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
       '</div>';
     }).join('');
     picker.style.display = 'block';
@@ -11977,6 +11988,35 @@ async function afkarMoveGroup(id, direction) {
     if (!ex) return;
     _t2Topic = t2BuildTopicFromExam(ex);
     var picker = document.getElementById('ai-t2-picker');
+    if (picker) picker.style.display = 'none';
+    var startScreen = document.getElementById('ai-start-screen');
+    if (startScreen) startScreen.style.display = 'flex';
+  };
+
+  // ── قائمة اختيار اختبار Teil 3 يدوياً (بدل الاختيار العشوائي التلقائي) ──
+  function t3ShowPicker(exams) {
+    var picker = document.getElementById('ai-t3-picker');
+    var list = document.getElementById('ai-t3-picker-list');
+    if (!picker || !list) return;
+    list.innerHTML = exams.map(function(ex, idx) {
+      return '<div class="exam-list-item" onclick="t3SelectTopic(' + idx + ')">' +
+        '<div class="exam-list-left">' +
+          '<span class="exam-list-num">' + String(idx + 1).padStart(2, '0') + '</span>' +
+          '<div><div class="exam-list-name">' + escHtml(ex.name || 'بدون عنوان') + '</div></div>' +
+        '</div>' +
+        '<div class="exam-list-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>' +
+      '</div>';
+    }).join('');
+    picker.style.display = 'block';
+  }
+
+  // ── المستخدم اختار اختباراً محدداً لـ Teil 3 ──
+  window.t3SelectTopic = function(idx) {
+    var exams = (typeof mdt3GetExams === 'function') ? mdt3GetExams() : [];
+    var ex = exams[idx];
+    if (!ex) return;
+    _t3Topic = t3BuildTopicFromExam(ex);
+    var picker = document.getElementById('ai-t3-picker');
     if (picker) picker.style.display = 'none';
     var startScreen = document.getElementById('ai-start-screen');
     if (startScreen) startScreen.style.display = 'flex';
